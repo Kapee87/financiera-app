@@ -26,14 +26,12 @@ export class User {
   @Prop({ required: true })
   phone: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, default: true })
   isActive: boolean;
 
   @Prop({ type: String, enum: Roles, required: true, default: Roles.User })
   role: Roles;
-
-  @Prop({ type: SchemaTypes.ObjectId, ref: 'Business' })
-  businessId: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+/* eslint-disable */

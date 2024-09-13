@@ -16,11 +16,11 @@ export class UsersService {
     private configService: ConfigService,
   ) {}
 
-  findAll() {
+  async findAll(): Promise<User[]> {
     return this.userModel.find();
   }
 
-  findByEmail(email: string) {
+  async findByEmail(email: string): Promise<User> {
     return this.userModel.findOne({ email });
   }
 

@@ -21,8 +21,6 @@ export class AuthService {
     private mailerService: MailerService,
     private templatesService: TemplatesService,
   ) {
-    /* console.log('UsersService', this.usersService); */
-    // para buscar errores
     this.apiKeyEmail = this.configService.get<String>('EMAIL_API_KEY');
     this.activationUrl = this.configService.get<String>('BASE_URL');
   }
@@ -30,7 +28,7 @@ export class AuthService {
   async validateUserCredentials(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
     if (user && bcrypt.compare(password, user.password)) {
-      const { password, ...result } = user.toObject();
+      const { password, ...result } = (user as any).toObject();
       return result;
     }
     return null;
