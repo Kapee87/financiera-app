@@ -7,6 +7,7 @@ import { UsersModule } from './modules/users/users.module';
 import { TransactionModule } from './modules/transaction/transaction.module';
 import { OfficeModule } from './modules/office/office.module';
 import { CurrencyModule } from './modules/currency/currency.module';
+import { CashRegister } from './schemas/cash_registers.schema';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CurrencyModule } from './modules/currency/currency.module';
     TransactionModule,
     OfficeModule,
     CurrencyModule,
+    CashRegister,
   ],
   exports: [MongooseModule],
 })
