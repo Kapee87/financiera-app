@@ -1,52 +1,34 @@
 /* eslint-disable */
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
-import { SchemaTypes } from 'mongoose';
+import { SchemaTypes, Types } from 'mongoose';
+import { User } from './user.schema';
+import { SubOffice } from './sub_office.schema';
+import { Currency } from './currency.schema';
 
 @Schema({
   timestamps: true,
 })
 export class Transaction {
-  @Prop({ type: SchemaTypes.ObjectId, auto: true })
-  _id: string;
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  user: User;
 
-  @Prop({
-    required: true,
-    type: SchemaTypes.ObjectId,
-  })
-  userId: string; // Referencia al usuario que realiza la transacción
+  @Prop({ type: Types.ObjectId, ref: 'SubOffice', required: true })
+  subOffice: SubOffice;
 
-  @Prop({
-    required: true,
-  })
-  type: string; // Tipo de transacción (compra/venta/cambio de cheques)
+  @Prop({ type: Types.ObjectId, ref: 'Currency', required: true })
+  currency: Currency;
 
-  @Prop({
-    required: true,
-  })
-  currency: string; // Moneda utilizada
+  @Prop({ enum: ['buy', 'sell', 'check'], required: true })
+  type: string;
 
-  @Prop({
-    required: true,
-  })
-  amount: number; // Monto de la transacción
+  @Prop({ type: Number, required: true })
+  amount: number;
 
-  @Prop({
-    type: Number,
-    required: false,
-  })
-  exchangeRate?: number; // Tasa de cambio (opcional)
+  @Prop({ type: Number })
+  exchange_rate: number;
 
-  @Prop({
-    type: Number,
-    required: true,
-  })
-  commission: number; // Comisión aplicada a la transacción
-
-  @Prop({
-    required: true,
-    type: SchemaTypes.ObjectId,
-  })
-  officeId: string; // Referencia a la sucursal donde se realizó la transacción
+  @Prop({ type: Number })
+  commission: number;
 }
 
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);

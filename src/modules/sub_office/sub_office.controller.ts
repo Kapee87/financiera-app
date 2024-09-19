@@ -18,9 +18,9 @@ export class SubOfficeController {
   constructor(private readonly subOfficeService: SubOfficeService) {}
 
   @Post()
-  create(@Body() officeData: Partial<SubOffice>) {
+  create(@Body() subOfficeData: Partial<SubOffice>) {
     try {
-      return this.subOfficeService.create(officeData);
+      return this.subOfficeService.create(subOfficeData);
     } catch (error) {
       throw new Error(error);
     }

@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { SubOffice } from 'src/schemas/sub_office.schema';
@@ -10,9 +10,9 @@ export class SubOfficeService {
     @InjectModel(SubOffice.name) private sub_officeModel: Model<SubOffice>,
   ) {}
 
-  async create(sub_officeData: Partial<any>): Promise<SubOffice> {
-    const sub_office = new this.sub_officeModel(sub_officeData);
-    return sub_office.save();
+  async create(sub_officeData: Partial<SubOffice>): Promise<SubOffice> {
+    const newSub_office = new this.sub_officeModel(sub_officeData);
+    return newSub_office.save();
   }
 
   async findAll(): Promise<SubOffice[]> {
@@ -20,16 +20,30 @@ export class SubOfficeService {
   }
 
   async findOne(id: string): Promise<SubOffice> {
-    return this.sub_officeModel.findById(id).exec();
+    const subOffice = await this.sub_officeModel.findById(id).exec();
+    if (!subOffice) {
+      throw new NotFoundException(`SubOffice with ID ${id} not found`);
+    }
+    return subOffice;
   }
 
   async update(id: string, sub_officeData: Partial<any>): Promise<SubOffice> {
-    return this.sub_officeModel
+    const updatedSub_office = this.sub_officeModel
       .findByIdAndUpdate(id, sub_officeData, { new: true })
       .exec();
+    if (!updatedSub_office) {
+      throw new NotFoundException(`SubOffice with ID ${id} not found`);
+    }
+
+    return updatedSub_office;
   }
 
-  async delete(id: string): Promise<SubOffice> {
-    return this.sub_officeModel.findByIdAndDelete(id).exec();
+  async delete(id: string): Promise<string> {
+    const deletedSub_office = this.sub_officeModel.findByIdAndDelete(id).exec();
+
+    if (!deletedSub_office) {
+      throw new NotFoundException(`SubOffice with ID ${id} not found`);
+    }
+    return 'Sub agencia eliminada correctamente';
   }
 }

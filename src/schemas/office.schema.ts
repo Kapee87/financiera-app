@@ -16,8 +16,8 @@ export class Office {
   @Prop({ required: true })
   address: string; // Dirección de la sucursal
 
-  @Prop({ type: [SchemaTypes.ObjectId], ref: User.name }) // Referencia a usuarios
-  users: string[]; // Lista de usuarios que tienen acceso a esta sucursal
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'SubOffice', required: true })
+  sub_offices: string[]; // Sub oficinas que pertenecen a esta oficina
 }
 
 export const OfficeSchema = SchemaFactory.createForClass(Office);
