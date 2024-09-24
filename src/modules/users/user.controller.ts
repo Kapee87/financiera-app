@@ -10,6 +10,9 @@ import {
   Put,
   ConflictException,
   HttpException,
+  NotFoundException,
+  ForbiddenException,
+  Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { userDto } from 'src/dtos/user.dto';
@@ -18,11 +21,15 @@ import { JwtAuthGuard } from 'src/guards/jwt-auth-guard';
 import { IsActiveGuard } from 'src/guards/is-active-guard';
 import { AdminGuard } from 'src/guards/admin-guard';
 import { Roles } from 'src/utils/enums/roles.enum';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('users')
 @UseGuards(IsActiveGuard, JwtAuthGuard)
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private jwtService: JwtService,
+  ) {}
 
   @Get()
   findAll() {
@@ -56,20 +63,65 @@ export class UsersController {
     return newUser;
   }
 
-  @Put(':id')
-  async update(@Param('id') id: string, @Body() user: userDto) {
+  @Put('update-self/:id')
+  async updateSelf(
+    @Param('id') id: string,
+    @Body() user: userDto,
+    @Req() req: Express.Request & { user: any },
+  ) {
+    const userDB = await this.usersService.findOneById(req.user.userId);
+    console.log(userDB._id.toString(), id);
+
+    if (userDB._id.toString() !== id) {
+      throw new ForbiddenException(
+        'No tiene permisos para realizar esta accion',
+      );
+    }
+    const { isActive, role, ...updateUser } = user;
+    return this.usersService.updateUser(id, updateUser);
+  }
+
+  @Put('update-user/:id')
+  @UseGuards(AdminGuard)
+  updateUser(@Param('id') id: string, @Body() user: userDto) {
+    if (user.role !== Roles.User) {
+      throw new ConflictException('Sin permiso para modificar este usuario');
+    }
     return this.usersService.updateUser(id, user);
   }
 
-  @Delete('deleteAdmin/:id')
+  @Put('update-admin/:id')
+  @UseGuards(AdminGuard)
+  async updateAdmin(
+    @Param('id') id: string,
+    @Body() user: userDto,
+    @Req() req: Express.Request & { user: any },
+  ) {
+    const userDB = await this.usersService.findOneById(req.user.userId);
+
+    if (userDB._id.toString() !== id && userDB.role !== Roles.SuperAdmin) {
+      throw new ForbiddenException(
+        'No tiene permisos para realizar esta accion',
+      );
+    }
+    return this.usersService.updateUser(id, user);
+  }
+
+  @Delete('delete-admin/:id')
   @UseGuards(SuperAdminGuard)
   deleteAdmin(@Param('id') id: string) {
     return this.usersService.deleteAdmin(id);
   }
 
-  @Delete('deleteUser/:id')
+  @Delete('delete-user/:id')
   @UseGuards(AdminGuard)
   deleteUser(@Param('id') id: string) {
     return this.usersService.deleteUser(id);
+  }
+
+  @Delete('deleteAll')
+  @UseGuards(SuperAdminGuard)
+  deleteAll() {
+    return this.usersService.deleteAll();
   }
 }

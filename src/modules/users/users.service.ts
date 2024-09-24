@@ -26,12 +26,20 @@ export class UsersService {
   ) {}
 
   async findAll(): Promise<User[]> {
-    return this.userModel.find();
+    try {
+      return this.userModel.find();
+    } catch (error) {
+      throw new NotFoundException('No se encontraron usuarios');
+    }
   }
 
   async findByEmail(email: string) {
-    const userFound = await this.userModel.findOne({ email });
-    return userFound;
+    try {
+      const userFound = await this.userModel.findOne({ email });
+      return userFound;
+    } catch (error) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
   }
 
   async findOneById(id: string): Promise<User> {
@@ -69,7 +77,11 @@ export class UsersService {
   }
 
   async updateUser(id: string, user: Partial<userDto>): Promise<User> {
-    return this.userModel.findByIdAndUpdate(id, user, { new: true });
+    try {
+      return this.userModel.findByIdAndUpdate(id, user, { new: true });
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
   }
 
   async deleteUser(id: string) {
@@ -102,6 +114,10 @@ export class UsersService {
 
   //Delete all sólo para desarrollo
   async deleteAll(): Promise<any> {
-    return this.userModel.deleteMany();
+    try {
+      return this.userModel.deleteMany();
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
   }
 }
