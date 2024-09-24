@@ -43,7 +43,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @UseGuards(SuperAdminGuard)
+  @UseGuards(SuperAdminGuard) // ajustar luego para que un admin pueda borrar users, pero no admin ni superadmin. Además que los users no puedan borrar nada.
   deleteUSer(@Param('id') id: string) {
     return this.usersService.deleteUser(id);
   }

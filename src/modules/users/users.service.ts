@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { userDto } from 'src/dtos/user.dto';
@@ -16,16 +16,25 @@ export class UsersService {
     private configService: ConfigService,
   ) {}
 
-  findAll() {
+  async findAll(): Promise<User[]> {
     return this.userModel.find();
   }
 
-  findByEmail(email: string) {
-    return this.userModel.findOne({ email });
+  async findByEmail(email: string) {
+    const userFound = await this.userModel.findOne({ email });
+    return userFound;
   }
 
   async findOneById(id: string): Promise<User> {
-    return this.userModel.findById(id).exec();
+    try {
+      const userFound = await this.userModel.findById(id);
+      if (!userFound) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+      return userFound;
+    } catch (error) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
   }
 
   async createUser(user: userDto): Promise<User> {

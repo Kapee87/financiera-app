@@ -8,6 +8,8 @@ import {
   Delete,
   Get,
   UseGuards,
+  ForbiddenException,
+  ConflictException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
@@ -44,6 +46,17 @@ export class AuthController {
     @Body() registerUserDto: userDto,
     @Query('superKey') superKey: string,
   ) {
+    if (!Object.values(Roles).includes(registerUserDto.role)) {
+      console.log(registerUserDto);
+
+      throw new ConflictException('Rol no válido');
+    }
+
+    if (registerUserDto.role === Roles.User) {
+      throw new UnauthorizedException(
+        'Sin permisos para registrar usuarios, sólo Administradores',
+      );
+    }
     if (
       registerUserDto.role === Roles.SuperAdmin &&
       superKey !== this.configService.get<string>('SUPER_KEY')
@@ -53,17 +66,33 @@ export class AuthController {
       );
     }
 
+    if (
+      registerUserDto.role === Roles.SuperAdmin &&
+      superKey === this.configService.get<string>('SUPER_KEY')
+    ) {
+      try {
+        await this.authService.createSuperAdmin(registerUserDto);
+        return {
+          message: 'Creado exitosamente',
+          status: 201,
+        };
+      } catch (error) {
+        throw new UnauthorizedException(
+          'No se pudo crear el super admin ' + error.message,
+        );
+      }
+    }
+
     try {
+      console.log('llego al try registerAdmin');
+
+      registerUserDto.role = Roles.Admin;
       return await this.authService.register(registerUserDto);
     } catch (error) {
-      return {
-        message: error.message,
-        status: error.status,
-        name: error.name,
-        error: error,
-      };
+      throw new ConflictException('El usuario ya existe' + error);
     }
   }
+
   @Get('activate')
   async activateAccount(@Query('token') token: string) {
     console.log(token);
@@ -72,7 +101,7 @@ export class AuthController {
       const payload = this.jwtService.verify(token);
       const user = await this.usersService.findOneById(payload.sub);
       if (!user) {
-        throw new UnauthorizedException('Invalid token');
+        throw new UnauthorizedException('Token inválido');
       }
 
       // Activa el usuario
@@ -81,7 +110,7 @@ export class AuthController {
       console.log(activeUser);
       return { message: 'Cuenta activada exitosamente.' };
     } catch (error) {
-      throw new UnauthorizedException('Invalid or expired token');
+      throw new UnauthorizedException('Token expirado o inválido');
     }
   }
   @Post('forgot-password')
@@ -97,10 +126,14 @@ export class AuthController {
         action: 'forgot-password',
       };
       const token = this.jwtService.sign(payload, { expiresIn: '5m' });
-      const link = `${this.configService.get<string>('BASE_URL')}/auth/reset-password?token=${token}`;
-      return { link };
+      const link = `${this.configService.get<string>('FRONTEND_URL')}/change-password?token=${token}`;
+      await this.authService.sendResetPasswordEmail(user.email, link);
+      return {
+        message:
+          'Correo de restablecimiento de contraseña enviado exitosamente.',
+      };
     } catch (error) {
-      throw new UnauthorizedException('Invalid email');
+      throw new UnauthorizedException('Email inválido o inexistente');
     }
   }
 
@@ -113,14 +146,14 @@ export class AuthController {
       const payload = this.jwtService.verify(token);
       const user = await this.usersService.findOneById(payload.sub);
       if (!user) {
-        throw new UnauthorizedException('Invalid token');
+        throw new UnauthorizedException('Token inválido');
       }
       const hashedPassword = await bcrypt.hash(password, 10);
       user.password = hashedPassword;
       const updatedUser = await this.usersService.updateUser(user._id, user);
       return { message: 'Contraseña actualizada exitosamente.' };
     } catch (error) {
-      throw new UnauthorizedException('Invalid or expired token');
+      throw new UnauthorizedException('Token inválido o expirado');
     }
   }
 
@@ -147,13 +180,5 @@ export class AuthController {
       return error;
     }
     return 'Borrado exitosamente';
-  }
-
-  //propando guard isActive
-  @Get('users')
-  @UseGuards(IsActiveGuard)
-  async getUsers() {
-    const users = await this.usersService.findAll();
-    return users;
   }
 }

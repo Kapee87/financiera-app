@@ -13,7 +13,10 @@ export class User {
   @Prop({
     required: true,
   })
-  username: string;
+  name: string;
+
+  @Prop({ required: true })
+  lastName: string;
 
   @Prop({
     required: true,
@@ -23,17 +26,12 @@ export class User {
   @Prop({ unique: true, required: true })
   email: string;
 
-  @Prop({ required: true })
-  phone: string;
-
-  @Prop({ required: true })
+  @Prop({ required: true, default: true })
   isActive: boolean;
 
   @Prop({ type: String, enum: Roles, required: true, default: Roles.User })
   role: Roles;
-
-  @Prop({ type: SchemaTypes.ObjectId, ref: 'Business' })
-  businessId: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+/* eslint-disable */
