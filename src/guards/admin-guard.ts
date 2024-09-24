@@ -17,13 +17,13 @@ export class AdminGuard extends AuthGuard('jwt') {
 
   handleRequest(err, user, info, context: ExecutionContext) {
     if (err || info || !user) {
-      throw err || new UnauthorizedException();
+      throw err || new UnauthorizedException('Token inválido');
     }
 
     if (user.role === Roles.Admin) {
       return user;
     }
 
-    throw new ForbiddenException();
+    throw new ForbiddenException('Sin permisos para realizar esta accion');
   }
 }

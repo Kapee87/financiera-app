@@ -12,7 +12,7 @@ import { Roles } from 'src/utils/enums/roles.enum';
 export class userDto {
   @IsNotEmpty()
   @IsString()
-  username: string;
+  name: string;
 
   @IsNotEmpty()
   @IsEmail()
@@ -24,7 +24,7 @@ export class userDto {
 
   @IsNotEmpty()
   @IsString()
-  phone: string;
+  lastName: string;
 
   @IsNotEmpty()
   @IsBoolean()

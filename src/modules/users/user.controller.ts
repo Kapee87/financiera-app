@@ -8,12 +8,19 @@ import {
   Param,
   UseGuards,
   Put,
+  ConflictException,
+  HttpException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { userDto } from 'src/dtos/user.dto';
 import { SuperAdminGuard } from 'src/guards/super-admin-guard';
+import { JwtAuthGuard } from 'src/guards/jwt-auth-guard';
+import { IsActiveGuard } from 'src/guards/is-active-guard';
+import { AdminGuard } from 'src/guards/admin-guard';
+import { Roles } from 'src/utils/enums/roles.enum';
 
 @Controller('users')
+@UseGuards(IsActiveGuard, JwtAuthGuard)
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
@@ -33,8 +40,20 @@ export class UsersController {
   }
 
   @Post('/')
+  @UseGuards(AdminGuard)
   createUser(@Body() body: userDto) {
-    return this.usersService.createUser(body);
+    if (body.role === Roles.SuperAdmin) {
+      throw new HttpException('No se puede crear un manager o superAdmin', 400);
+    } else if (body.role === Roles.Admin) {
+      throw new HttpException('No se puede crear un adminastrador', 400);
+    }
+
+    if (!Object.values(Roles).includes(body.role)) {
+      throw new ConflictException('Rol no válido');
+    }
+
+    const newUser = this.usersService.createUser({ ...body, isActive: true });
+    return newUser;
   }
 
   @Put(':id')
@@ -42,9 +61,15 @@ export class UsersController {
     return this.usersService.updateUser(id, user);
   }
 
-  @Delete(':id')
-  @UseGuards(SuperAdminGuard) // ajustar luego para que un admin pueda borrar users, pero no admin ni superadmin. Además que los users no puedan borrar nada.
-  deleteUSer(@Param('id') id: string) {
+  @Delete('deleteAdmin/:id')
+  @UseGuards(SuperAdminGuard)
+  deleteAdmin(@Param('id') id: string) {
+    return this.usersService.deleteAdmin(id);
+  }
+
+  @Delete('deleteUser/:id')
+  @UseGuards(AdminGuard)
+  deleteUser(@Param('id') id: string) {
     return this.usersService.deleteUser(id);
   }
 }

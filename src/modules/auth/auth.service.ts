@@ -12,10 +12,8 @@ import { ConfigService } from '@nestjs/config';
 import { userDto } from 'src/dtos/user.dto';
 
 import { Roles } from 'src/utils/enums/roles.enum';
-import { EnumStatus } from 'src/utils/enums/status.enum';
 import { MailerService } from 'src/utils/mailer/mailer.service';
 import { TemplatesService, TemplateVars } from 'src/utils/template.service';
-import { log } from 'console';
 
 @Injectable()
 export class AuthService {
@@ -29,8 +27,6 @@ export class AuthService {
     private mailerService: MailerService,
     private templatesService: TemplatesService,
   ) {
-    /* console.log('UsersService', this.usersService); */
-    // para buscar errores
     this.apiKeyEmail = this.configService.get<String>('EMAIL_API_KEY');
     this.activationUrl = `${this.configService.get<string>('FRONTEND_URL')}/login`;
   }
@@ -79,7 +75,6 @@ export class AuthService {
       throw new UnauthorizedException('El email ya existe');
     }
     const mailExists = await this.checkIfMailExists(registerUserDto.email);
-    console.log(mailExists);
 
     if (!mailExists) {
       throw new UnauthorizedException({

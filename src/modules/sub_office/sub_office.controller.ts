@@ -45,4 +45,6 @@ export class SubOfficeController {
   delete(@Param('id') id: string) {
     return this.subOfficeService.delete(id);
   }
+
+  
 }

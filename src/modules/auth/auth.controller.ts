@@ -71,7 +71,10 @@ export class AuthController {
       superKey === this.configService.get<string>('SUPER_KEY')
     ) {
       try {
-        await this.authService.createSuperAdmin(registerUserDto);
+        await this.authService.createSuperAdmin({
+          ...registerUserDto,
+          isActive: false,
+        });
         return {
           message: 'Creado exitosamente',
           status: 201,
@@ -89,7 +92,7 @@ export class AuthController {
       registerUserDto.role = Roles.Admin;
       return await this.authService.register(registerUserDto);
     } catch (error) {
-      throw new ConflictException('El usuario ya existe' + error);
+      throw new ConflictException('El usuario ya está registrado');
     }
   }
 
