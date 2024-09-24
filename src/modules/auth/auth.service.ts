@@ -1,13 +1,21 @@
 /* eslint-disable */
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { userDto } from 'src/dtos/user.dto';
+
+import { Roles } from 'src/utils/enums/roles.enum';
+import { EnumStatus } from 'src/utils/enums/status.enum';
 import { MailerService } from 'src/utils/mailer/mailer.service';
 import { TemplatesService, TemplateVars } from 'src/utils/template.service';
+import { log } from 'console';
 
 @Injectable()
 export class AuthService {
@@ -21,25 +29,43 @@ export class AuthService {
     private mailerService: MailerService,
     private templatesService: TemplatesService,
   ) {
+    /* console.log('UsersService', this.usersService); */
+    // para buscar errores
     this.apiKeyEmail = this.configService.get<String>('EMAIL_API_KEY');
-    this.activationUrl = this.configService.get<String>('BASE_URL');
+    this.activationUrl = `${this.configService.get<string>('FRONTEND_URL')}/login`;
   }
 
   async validateUserCredentials(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
-    if (user && bcrypt.compare(password, user.password)) {
-      const { password, ...result } = (user as any).toObject();
-      return result;
+
+    if (!user) {
+      throw new UnauthorizedException('No se encontró el usuario');
     }
-    return null;
+
+    const hashedPassword = user.password;
+    const isValid = await bcrypt.compare(password, hashedPassword);
+
+    if (isValid) {
+      const { password, ...result } = user.toObject();
+      return result;
+    } else {
+      throw new UnauthorizedException('Contraseña inválida');
+    }
   }
 
   async login(email: string, password: string) {
     const user = await this.validateUserCredentials(email, password);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(
+        'No existe el usuario o las credenciales son incorrectas',
+      );
     }
+
+    if (user.isActive === false || !user.isActive) {
+      throw new UnauthorizedException('El usuario no está activado');
+    }
+
     const payload = { email: user.email, sub: user._id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
@@ -48,21 +74,23 @@ export class AuthService {
 
   async register(registerUserDto: userDto) {
     const user = await this.usersService.findByEmail(registerUserDto.email);
+
     if (user) {
-      throw new UnauthorizedException('Email already exists');
+      throw new UnauthorizedException('El email ya existe');
     }
     const mailExists = await this.checkIfMailExists(registerUserDto.email);
-    if (!mailExists) {
-      throw new UnauthorizedException(
-        'The email is not valid or does not exist',
-      );
-    }
-    console.log(user, mailExists);
+    console.log(mailExists);
 
-    const hashedPassword = await bcrypt.hash(registerUserDto.password, 10);
+    if (!mailExists) {
+      throw new UnauthorizedException({
+        message: 'El email no existe, por favor indica uno correctamente',
+      });
+    }
+
     const newUser = await this.usersService.createUser({
       ...registerUserDto,
-      password: hashedPassword,
+      role: Roles.Admin,
+      isActive: false,
     });
     // Genera un token JWT para la activación
     const payload = {
@@ -72,12 +100,14 @@ export class AuthService {
     };
     const activationToken = this.jwtService.sign(payload, { expiresIn: '5h' }); // Token válido por 5 horas
 
-    const activationLink = `${this.activationUrl}/auth/activate?token=${activationToken}`;
+    const link = `${this.activationUrl}?token=${activationToken}`;
 
     const vars: TemplateVars = {
-      activationLink,
+      link,
       currentYear: new Date().getFullYear(),
       message: `¡Hola ${newUser?.email}! Por favor, activa tu cuenta haciendo clic en el siguiente enlace:`,
+      title: 'Activación de cuenta',
+      btn_text: 'Activar cuenta',
     };
 
     const html = this.templatesService.getTemplate(vars);
@@ -93,14 +123,40 @@ export class AuthService {
       message: 'Usuario registrado. Verifica tu correo para activar tu cuenta.',
     };
   }
+  async sendResetPasswordEmail(email: string, link: string) {
+    try {
+      const vars: TemplateVars = {
+        link,
+        currentYear: new Date().getFullYear(),
+        message: `¡Hola! Por favor, haz clic en el siguiente enlace para restablecer tu contraseña:`,
+        title: 'Restablecimiento de contraseña',
+        btn_text: 'Restablecer contraseña',
+      };
+
+      const html = this.templatesService.getTemplate(vars);
+      await this.mailerService.sendMail({
+        from: { name: 'Contable Soft', address: 'noreply@csoft.com' },
+        recipients: [{ name: email, address: email }],
+        subject: 'Restablecimiento de contraseña',
+        html,
+        to: email,
+      });
+    } catch (error) {
+      throw new ConflictException(
+        'Error al enviar correo electrónico de restablecimiento de contraseña',
+      );
+    }
+  }
 
   async checkIfMailExists(email) {
     try {
+      console.log('checkIfMailExists', email);
       const response = await this.httpService
         .get(
           `https://emailvalidation.abstractapi.com/v1/?api_key=${this.apiKeyEmail}&email=${email}`,
         )
         .toPromise();
+      console.log(response.data);
 
       if (
         response.data.deliverability === 'DELIVERABLE' &&
@@ -111,16 +167,32 @@ export class AuthService {
         return false;
       }
     } catch (error) {
+      console.log('Error al comprobar el correo loop', error.response);
+
       if (error.response && error.response.status === 429) {
         console.error('Excediste la cuota de solicitudes. Intenta más tarde.');
-        return {
-          message: 'Excediste la cuota de solicitudes. Intenta más tarde.',
-        };
+        throw new ConflictException(
+          'Excediste la cuota de solicitudes. Intenta más tarde.',
+        );
       }
-      return {
-        message: error.message,
-        error: error,
-      };
+      throw new ConflictException('Error al comprobar el correo');
     }
+  }
+
+  async createSuperAdmin(registerUserDto: userDto) {
+    const superAdmin = await this.usersService.findByEmail(
+      registerUserDto.email,
+    );
+
+    if (!superAdmin) {
+      await this.usersService.createUser({
+        ...registerUserDto,
+        role: Roles.SuperAdmin,
+        isActive: true,
+      });
+    } else {
+      throw new UnauthorizedException('El email ya existe');
+    }
+    return superAdmin;
   }
 }

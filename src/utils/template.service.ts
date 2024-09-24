@@ -2,9 +2,11 @@
 import { Injectable } from '@nestjs/common';
 
 export interface TemplateVars {
-  activationLink: string;
+  link: string;
   currentYear: number;
   message: string;
+  title: string;
+  btn_text: string;
 }
 
 @Injectable()
@@ -64,9 +66,9 @@ export class TemplatesService {
             </head>
             <body>
                 <div class="container">
-                    <h1>¡Bienvenido a Nuestro Servicio!</h1>
+                    <h1>¡Bienvenido a Nuestro Servicio de {{title}}!</h1>
                     <p>{{message}}</p>
-                    <a href="{{activationLink}}" class="button">Activar Cuenta</a>
+                    <a href="{{link}}" class="button">{{btn_text}}</a>
                     <p>Si no te registraste, ignora este correo.</p>
                     <div class="footer">
                         <p>&copy; {{currentYear}} Tu Empresa. Todos los derechos reservados.</p>
@@ -79,8 +81,10 @@ export class TemplatesService {
 
   getTemplate(vars: TemplateVars): string {
     return this.htmlTemplate
-      .replace('{{activationLink}}', vars.activationLink)
+      .replace('{{link}}', vars.link)
       .replace('{{currentYear}}', vars.currentYear.toString())
-      .replace('{{message}}', vars.message);
+      .replace('{{message}}', vars.message)
+      .replace('{{title}}', vars.title)
+      .replace('{{btn_text}}', vars.btn_text);
   }
 }
