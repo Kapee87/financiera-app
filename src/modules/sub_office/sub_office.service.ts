@@ -46,4 +46,23 @@ export class SubOfficeService {
     }
     return 'Sub agencia eliminada correctamente';
   }
+
+  /* probar y ajustar si hace falta
+  // Método en el modelo de SubOffice
+async getCurrencyStock(currencyId: string): Promise<number> {
+  const currency = await Currency.findById(currencyId);
+
+  if (!currency) {
+    throw new NotFoundException(`Currency with ID ${currencyId} not found`);
+  }
+
+  const stock = this.currencies.find((c) => c.currency.equals(currencyId))?.stock;
+
+  if (stock === undefined) {
+    throw new NotFoundException(`Currency with ID ${currencyId} not found in this sub-office`);
+  }
+
+  return stock;
+} 
+   */
 }

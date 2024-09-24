@@ -2,6 +2,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, SchemaTypes } from 'mongoose';
 import { User } from './user.schema';
+import { Currency } from './currency.schema';
 
 export type SubOfficeDocument = SubOffice & Document;
 
@@ -23,6 +24,16 @@ export class SubOffice {
 
   @Prop({ type: [SchemaTypes.ObjectId], ref: User.name }) // Referencia a usuarios
   users: string[]; // Lista de usuarios que tienen acceso a esta sucursal
+
+  @Prop({
+    type: [
+      {
+        currency: { type: SchemaTypes.ObjectId, ref: 'Currency' },
+        stock: { type: Number, required: true },
+      },
+    ],
+  })
+  currencies: { currency: Currency; stock: number }[];
 }
 
 export const SubOfficeSchema = SchemaFactory.createForClass(SubOffice);

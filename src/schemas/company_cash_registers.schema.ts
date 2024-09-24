@@ -25,7 +25,7 @@ export class CompanyCashRegister {
   difference: number;
 
   @Prop({ type: [SchemaTypes.ObjectId], ref: 'CashRegister', required: true })
-  branchCashRegisters: string[];
+  subOfficeCashRegisters: string[];
 }
 
 export const CompanyCashRegisterSchema =
