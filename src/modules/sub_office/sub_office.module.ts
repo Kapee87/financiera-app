@@ -15,4 +15,4 @@ import { SubOfficeService } from './sub_office.service';
   providers: [SubOfficeService],
   exports: [SubOfficeService],
 })
-export class OfficeModule {}
+export class SubOfficeModule {}

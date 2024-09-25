@@ -8,6 +8,7 @@ import { TransactionModule } from './modules/transaction/transaction.module';
 import { OfficeModule } from './modules/office/office.module';
 import { CurrencyModule } from './modules/currency/currency.module';
 import { CashRegister } from './schemas/cash_registers.schema';
+import { SubOfficeModule } from './modules/sub_office/sub_office.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { CashRegister } from './schemas/cash_registers.schema';
     OfficeModule,
     CurrencyModule,
     CashRegister,
+    SubOfficeModule,
   ],
   exports: [MongooseModule],
 })

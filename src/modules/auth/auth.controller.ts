@@ -18,7 +18,6 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { ConfigService } from '@nestjs/config';
 import { Roles } from 'src/utils/enums/roles.enum';
-import { IsActiveGuard } from 'src/guards/is-active-guard';
 
 @Controller('auth')
 export class AuthController {
