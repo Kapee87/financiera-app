@@ -82,6 +82,8 @@ export class AuthService {
       });
     }
 
+    console.log('paso el check', mailExists);
+
     const newUser = await this.usersService.createUser({
       ...registerUserDto,
       role: Roles.Admin,
@@ -106,13 +108,19 @@ export class AuthService {
     };
 
     const html = this.templatesService.getTemplate(vars);
-    await this.mailerService.sendMail({
-      from: { name: 'Contable Soft', address: 'noreply@csoft.com' },
-      recipients: [{ name: newUser.email, address: newUser.email }],
-      subject: 'Activación de tu cuenta',
-      html,
-      to: newUser.email,
-    });
+    try {
+      await this.mailerService.sendMail({
+        from: { name: 'Contable Soft', address: 'noreply@csoft.com' },
+        recipients: [{ name: newUser.email, address: newUser.email }],
+        subject: 'Activación de tu cuenta',
+        html,
+        to: newUser.email,
+      });
+    } catch (error) {
+      throw new ConflictException(
+        'Error al enviar correo electrónico de activación de cuenta',
+      );
+    }
 
     return {
       message: 'Usuario registrado. Verifica tu correo para activar tu cuenta.',

@@ -92,6 +92,7 @@ export class AuthController {
       registerUserDto.role = Roles.Admin;
       return await this.authService.register(registerUserDto);
     } catch (error) {
+      console.log('llego al catch registerAdmin', error);
       throw new ConflictException('El usuario ya está registrado');
     }
   }
