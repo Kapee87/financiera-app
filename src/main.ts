@@ -8,7 +8,7 @@ async function bootstrap() {
   app.enableCors({
     origin:
       process.env.NODE_ENV === 'development'
-        ? 'http://localhost:5173'
+        ? ['http://localhost:5173', 'http://localhost']
         : process.env.FRONTEND_URL,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     preflightContinue: false,
