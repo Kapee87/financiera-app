@@ -48,7 +48,6 @@ export class AuthController {
   ) {
     if (!Object.values(Roles).includes(registerUserDto.role)) {
       console.log(registerUserDto);
-
       throw new ConflictException('Rol no válido');
     }
 
@@ -87,20 +86,15 @@ export class AuthController {
     }
 
     try {
-      console.log('llego al try registerAdmin');
-
       registerUserDto.role = Roles.Admin;
       return await this.authService.register(registerUserDto);
     } catch (error) {
-      console.log('llego al catch registerAdmin', error);
-      throw new ConflictException('El usuario ya está registrado');
+      throw new ConflictException(error.message);
     }
   }
 
   @Get('activate')
   async activateAccount(@Query('token') token: string) {
-    console.log(token);
-
     try {
       const payload = this.jwtService.verify(token);
       const user = await this.usersService.findOneById(payload.sub);
@@ -111,7 +105,7 @@ export class AuthController {
       // Activa el usuario
       user.isActive = true;
       const activeUser = await this.usersService.updateUser(user._id, user);
-      console.log(activeUser);
+
       return { message: 'Cuenta activada exitosamente.' };
     } catch (error) {
       throw new UnauthorizedException('Token expirado o inválido');

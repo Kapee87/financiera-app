@@ -28,7 +28,7 @@ export class AuthService {
     private templatesService: TemplatesService,
   ) {
     this.apiKeyEmail = this.configService.get<String>('EMAIL_API_KEY');
-    this.activationUrl = `${this.configService.get<string>('FRONTEND_URL')}/login`;
+    this.activationUrl = `${this.configService.get<string>('FRONTEND_URL')}`;
   }
 
   async validateUserCredentials(email: string, password: string): Promise<any> {
@@ -81,50 +81,54 @@ export class AuthService {
         message: 'El email no existe, por favor indica uno correctamente',
       });
     }
-
-    console.log('paso el check', mailExists);
-
-    const newUser = await this.usersService.createUser({
-      ...registerUserDto,
-      role: Roles.Admin,
-      isActive: false,
-    });
-    // Genera un token JWT para la activación
-    const payload = {
-      email: newUser.email,
-      sub: newUser._id,
-      action: 'activate',
-    };
-    const activationToken = this.jwtService.sign(payload, { expiresIn: '5h' }); // Token válido por 5 horas
-
-    const link = `${this.activationUrl}?token=${activationToken}`;
-
-    const vars: TemplateVars = {
-      link,
-      currentYear: new Date().getFullYear(),
-      message: `¡Hola ${newUser?.email}! Por favor, activa tu cuenta haciendo clic en el siguiente enlace:`,
-      title: 'Activación de cuenta',
-      btn_text: 'Activar cuenta',
-    };
-
-    const html = this.templatesService.getTemplate(vars);
     try {
-      await this.mailerService.sendMail({
-        from: { name: 'Contable Soft', address: 'noreply@csoft.com' },
-        recipients: [{ name: newUser.email, address: newUser.email }],
-        subject: 'Activación de tu cuenta',
-        html,
-        to: newUser.email,
+      const newUser = await this.usersService.createUser({
+        ...registerUserDto,
+        role: Roles.Admin,
+        isActive: false,
       });
-    } catch (error) {
-      throw new ConflictException(
-        'Error al enviar correo electrónico de activación de cuenta',
-      );
-    }
+      // Genera un token JWT para la activación
+      const payload = {
+        email: newUser.email,
+        sub: newUser._id,
+        action: 'activate',
+      };
+      const activationToken = this.jwtService.sign(payload, {
+        expiresIn: '5h',
+      }); // Token válido por 5 horas
 
-    return {
-      message: 'Usuario registrado. Verifica tu correo para activar tu cuenta.',
-    };
+      const link = `${this.activationUrl}?token=${activationToken}`;
+
+      const vars: TemplateVars = {
+        link,
+        currentYear: new Date().getFullYear(),
+        message: `¡Hola ${newUser?.email}! Por favor, activa tu cuenta haciendo clic en el siguiente enlace:`,
+        title: 'Activación de cuenta',
+        btn_text: 'Activar cuenta',
+      };
+
+      const html = this.templatesService.getTemplate(vars);
+      try {
+        await this.mailerService.sendMail({
+          from: { name: 'Contable Soft', address: 'noreply@csoft.com' },
+          recipients: [{ name: newUser.email, address: newUser.email }],
+          subject: 'Activación de tu cuenta',
+          html,
+          to: newUser.email,
+        });
+      } catch (error) {
+        throw new ConflictException(
+          'Error al enviar correo electrónico de activación de cuenta',
+        );
+      }
+
+      return {
+        message:
+          'Usuario registrado. Verifica tu correo para activar tu cuenta.',
+      };
+    } catch (error) {
+      throw new ConflictException('Error al registrar usuario' + error.message);
+    }
   }
   async sendResetPasswordEmail(email: string, link: string) {
     try {
@@ -153,13 +157,11 @@ export class AuthService {
 
   async checkIfMailExists(email) {
     try {
-      console.log('checkIfMailExists', email);
       const response = await this.httpService
         .get(
           `https://emailvalidation.abstractapi.com/v1/?api_key=${this.apiKeyEmail}&email=${email}`,
         )
         .toPromise();
-      console.log(response.data);
 
       if (
         response.data.deliverability === 'DELIVERABLE' &&
@@ -170,8 +172,6 @@ export class AuthService {
         return false;
       }
     } catch (error) {
-      console.log('Error al comprobar el correo loop', error.response);
-
       if (error.response && error.response.status === 429) {
         console.error('Excediste la cuota de solicitudes. Intenta más tarde.');
         throw new ConflictException(

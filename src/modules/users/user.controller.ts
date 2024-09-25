@@ -82,7 +82,7 @@ export class UsersController {
   }
 
   @Put('update-user/:id')
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard, SuperAdminGuard)
   updateUser(@Param('id') id: string, @Body() user: userDto) {
     if (user.role !== Roles.User) {
       throw new ConflictException('Sin permiso para modificar este usuario');
@@ -91,7 +91,7 @@ export class UsersController {
   }
 
   @Put('update-admin/:id')
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard, SuperAdminGuard)
   async updateAdmin(
     @Param('id') id: string,
     @Body() user: userDto,
@@ -114,7 +114,7 @@ export class UsersController {
   }
 
   @Delete('delete-user/:id')
-  @UseGuards(AdminGuard)
+  @UseGuards(AdminGuard, SuperAdminGuard)
   deleteUser(@Param('id') id: string) {
     return this.usersService.deleteUser(id);
   }
