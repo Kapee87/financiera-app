@@ -97,7 +97,7 @@ export class AuthService {
         expiresIn: '5h',
       }); // Token válido por 5 horas
 
-      const link = `${this.activationUrl}/activate?token=${activationToken}`;
+      const link = `${this.activationUrl}?token=${activationToken}`;
 
       const vars: TemplateVars = {
         link,
