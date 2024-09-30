@@ -1,0 +1,13 @@
+{
+    "user": "66f58441ffad9c334e8c0fd8",
+    "subOffice": "66faaea7ff6277c671354323",
+    "sourceCurrency": "66fafa0e60cdf8ddeee4a085",
+    "targetCurrency": "66faae73ff6277c671354321",
+    "type": "buy",
+    "sourceAmount": 100,
+    "targetAmount": 85,
+    "exchangeRate": 0.85,
+    "commission": 2
+}
+
+peticion transaction actualizada
