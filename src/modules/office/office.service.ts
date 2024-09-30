@@ -11,28 +11,54 @@ export class OfficeService {
   constructor(@InjectModel(Office.name) private officeModel: Model<Office>) {}
 
   async create(officeData: Partial<CreateOfficeDto>): Promise<Office> {
-    const office = new this.officeModel(officeData);
-    return office.save();
+    try {
+      const office = new this.officeModel(officeData);
+      return await office.save();
+    } catch (error) {
+      throw new Error(`Error al crear la oficina: ${error.message}`);
+    }
   }
 
   async findAll(): Promise<Office[]> {
-    return this.officeModel.find().exec();
+    try {
+      return await this.officeModel.find().exec();
+    } catch (error) {
+      throw new Error(`Error al obtener las oficinas: ${error.message}`);
+    }
   }
 
   async findOne(id: string): Promise<Office> {
-    return this.officeModel.findById(id).exec();
+    try {
+      return await this.officeModel.findById(id).exec();
+    } catch (error) {
+      throw new Error(
+        `Error al obtener la oficina con id ${id}: ${error.message}`,
+      );
+    }
   }
 
   async update(
     id: string,
     officeData: Partial<UpdateOfficeDto>,
   ): Promise<Office> {
-    return this.officeModel
-      .findByIdAndUpdate(id, officeData, { new: true })
-      .exec();
+    try {
+      return await this.officeModel
+        .findByIdAndUpdate(id, officeData, { new: true })
+        .exec();
+    } catch (error) {
+      throw new Error(
+        `Error al actualizar la oficina con id ${id}: ${error.message}`,
+      );
+    }
   }
 
   async delete(id: string): Promise<Office> {
-    return this.officeModel.findByIdAndDelete(id).exec();
+    try {
+      return await this.officeModel.findByIdAndDelete(id).exec();
+    } catch (error) {
+      throw new Error(
+        `Error al eliminar la oficina con id ${id}: ${error.message}`,
+      );
+    }
   }
 }

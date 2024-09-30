@@ -21,7 +21,7 @@ export class CurrencyService {
       return newCurrency;
     } catch (error) {
       throw new BadRequestException(
-        'Error creating currency: ' + error.message,
+        'Error al crear la moneda: ' + error.message,
       );
     }
   }
@@ -31,7 +31,7 @@ export class CurrencyService {
       return await this.currencyModel.find().exec();
     } catch (error) {
       throw new BadRequestException(
-        'Error fetching currencies: ' + error.message,
+        'Error al obtener las monedas: ' + error.message,
       );
     }
   }
@@ -39,7 +39,7 @@ export class CurrencyService {
   async findOne(id: string): Promise<Currency> {
     const currency = await this.currencyModel.findById(id).exec();
     if (!currency) {
-      throw new NotFoundException(`Currency with ID ${id} not found`);
+      throw new NotFoundException(`No se encontró la moneda con ID ${id}`);
     }
     return currency;
   }
@@ -50,7 +50,7 @@ export class CurrencyService {
       .exec();
 
     if (!updatedCurrency) {
-      throw new NotFoundException(`Currency with ID ${id} not found`);
+      throw new NotFoundException(`No se encontró la moneda con ID ${id}`);
     }
 
     return updatedCurrency;
@@ -62,9 +62,35 @@ export class CurrencyService {
       .exec();
 
     if (!deletedCurrency) {
-      throw new NotFoundException(`Currency with ID ${id} not found`);
+      throw new NotFoundException(`No es encontró la moneda con ID ${id}`);
     }
 
     return deletedCurrency;
+  }
+  async updateGlobalStock(
+    currencyId: string,
+    amount: number,
+    operation: 'increase' | 'decrease',
+  ): Promise<void> {
+    const currency = await this.currencyModel.findById(currencyId);
+
+    if (!currency) {
+      throw new NotFoundException(
+        `No es encontró la moneda con ID ${currencyId}`,
+      );
+    }
+
+    if (operation === 'increase') {
+      currency.globalStock += amount;
+    } else if (operation === 'decrease') {
+      if (currency.globalStock < amount) {
+        throw new BadRequestException(
+          'Stock global insuficiente para realizar esta operación',
+        );
+      }
+      currency.globalStock -= amount;
+    }
+
+    await currency.save();
   }
 }
