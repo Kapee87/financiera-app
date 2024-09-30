@@ -18,6 +18,12 @@ export class Office {
 
   @Prop({ type: [SchemaTypes.ObjectId], ref: 'SubOffice', required: true })
   sub_offices: string[]; // Sub oficinas que pertenecen a esta oficina
+
+  @Prop({
+    required: true,
+    default: 0,
+  })
+  globalStock: number; // Cantidad disponible de la moneda total(en dólares)
 }
 
 export const OfficeSchema = SchemaFactory.createForClass(Office);

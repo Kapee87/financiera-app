@@ -9,14 +9,16 @@ import {
   Body,
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
+
 import { Transaction } from 'src/schemas/transaction.schema';
+import { CreateTransactionDto } from 'src/dtos/create-transaction.dto';
 
 @Controller('transactions')
 export class TransactionController {
   constructor(private readonly transactionService: TransactionService) {}
 
   @Post()
-  create(@Body() transactionData: Partial<Transaction>) {
+  create(@Body() transactionData: CreateTransactionDto) {
     return this.transactionService.create(transactionData);
   }
 

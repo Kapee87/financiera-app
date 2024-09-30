@@ -1,8 +1,7 @@
 /* eslint-disable */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, SchemaTypes } from 'mongoose';
+import { Document, ObjectId, SchemaTypes } from 'mongoose';
 import { User } from './user.schema';
-import { Currency } from './currency.schema';
 
 export type SubOfficeDocument = SubOffice & Document;
 
@@ -33,7 +32,7 @@ export class SubOffice {
       },
     ],
   })
-  currencies: { currency: Currency; stock: number }[];
+  currencies: { currency: string; stock: number }[];
 }
 
 export const SubOfficeSchema = SchemaFactory.createForClass(SubOffice);

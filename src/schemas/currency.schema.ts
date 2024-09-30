@@ -24,7 +24,7 @@ export class Currency {
     required: true,
     default: 0,
   })
-  stockGeneral: number; // Cantidad disponible de la moneda total(en dólares)
+  globalStock: number; // Stock global en la empresa
 }
 
 export const CurrencySchema = SchemaFactory.createForClass(Currency);

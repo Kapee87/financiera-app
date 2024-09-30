@@ -1,9 +1,12 @@
 /* eslint-disable */
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
-import { SchemaTypes, Types } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { User } from './user.schema';
 import { SubOffice } from './sub_office.schema';
 import { Currency } from './currency.schema';
+
+// Definimos el tipo TransactionDocument, que es Transaction + Document de Mongoose
+export type TransactionDocument = Transaction & Document;
 
 @Schema({
   timestamps: true,
@@ -31,5 +34,5 @@ export class Transaction {
   commission: number;
 }
 
+// Usamos SchemaFactory para crear el esquema
 export const TransactionSchema = SchemaFactory.createForClass(Transaction);
-/* eslint-disable */

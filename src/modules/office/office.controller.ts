@@ -18,11 +18,7 @@ export class OfficeController {
 
   @Post()
   create(@Body() officeData: Partial<Office>) {
-    try {
-      return this.officeService.create(officeData);
-    } catch (error) {
-      throw new Error(error);
-    }
+    return this.officeService.create(officeData);
   }
 
   @Get()

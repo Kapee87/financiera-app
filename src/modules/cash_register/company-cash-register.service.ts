@@ -17,6 +17,10 @@ export class CompanyCashRegisterService {
   async generateDailyReport(date: string): Promise<CompanyCashRegister> {
     const cashRegisters = await this.cashRegisterModel.find({ date });
 
+    if (cashRegisters.length === 0) {
+      throw new Error(`No se encontraron registros para la fecha ${date}`);
+    }
+
     const totalOpeningBalance = cashRegisters.reduce(
       (sum, reg) => sum + reg.opening_balance,
       0,
@@ -35,15 +39,19 @@ export class CompanyCashRegisterService {
     );
     const difference = totalClosingBalance - totalOpeningBalance;
 
-    const companyCashRegister = await this.companyCashRegisterModel.create({
-      date,
-      total_opening_balance: totalOpeningBalance,
-      total_closing_balance: totalClosingBalance,
-      total_income: totalIncome,
-      total_expenses: totalExpenses,
-      difference,
-    });
+    try {
+      const companyCashRegister = await this.companyCashRegisterModel.create({
+        date,
+        total_opening_balance: totalOpeningBalance,
+        total_closing_balance: totalClosingBalance,
+        total_income: totalIncome,
+        total_expenses: totalExpenses,
+        difference,
+      });
 
-    return companyCashRegister;
+      return companyCashRegister;
+    } catch (error) {
+      throw new Error('Error al generar el reporte diario');
+    }
   }
 }
