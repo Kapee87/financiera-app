@@ -1,6 +1,7 @@
 /* eslint-disable */
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -19,8 +20,20 @@ export class SubOfficeService {
   async create(
     sub_officeData: Partial<createSubOfficeDto>,
   ): Promise<SubOffice> {
-    const newSub_office = new this.sub_officeModel(sub_officeData);
-    return newSub_office.save();
+    try {
+      const newSub_office = new this.sub_officeModel(sub_officeData);
+      return await newSub_office.save();
+    } catch (error) {
+      if (error.code === 11000) {
+        // Este es el código de error para clave duplicada en MongoDB
+        const field = Object.keys(error.keyValue)[0];
+        const value = error.keyValue[field];
+        throw new ConflictException(
+          `Ya existe una sucursal con ${field}: ${value}`,
+        );
+      }
+      throw error; // Si no es un error de duplicado, lanzamos el error original
+    }
   }
 
   async findAll(): Promise<SubOffice[]> {
@@ -54,7 +67,6 @@ export class SubOfficeService {
       throw new BadRequestException(`ID de sucursal inválido: ${id}`);
     }
     const subOffice = await this.sub_officeModel.findById(objectId).exec();
-    console.log('subOffice ', subOffice);
 
     if (!subOffice) {
       throw new NotFoundException(`No se encontró la sucursal con ID ${id}`);
@@ -63,7 +75,6 @@ export class SubOfficeService {
     // Manejar la actualización de monedas
     if (sub_officeData.currencies) {
       const currentCurrencies = subOffice.currencies || [];
-      const updatedCurrencies = [];
 
       for (const currencyData of sub_officeData.currencies) {
         const currencyId = currencyData.currency;
@@ -72,17 +83,17 @@ export class SubOfficeService {
           try {
             const objectId = new Types.ObjectId(currencyId);
 
-            const existingCurrency = currentCurrencies.find((c) =>
+            const existingCurrencyIndex = currentCurrencies.findIndex((c) =>
               c.currency.equals(objectId),
             );
 
-            if (existingCurrency) {
+            if (existingCurrencyIndex !== -1) {
               // Actualizar moneda existente
-              existingCurrency.stock = currencyData.stock;
-              updatedCurrencies.push(existingCurrency);
+              currentCurrencies[existingCurrencyIndex].stock +=
+                currencyData.stock;
             } else {
               // Agregar nueva moneda
-              updatedCurrencies.push({
+              currentCurrencies.push({
                 currency: objectId,
                 stock: currencyData.stock,
               });
@@ -96,9 +107,9 @@ export class SubOfficeService {
           console.warn(`ID de moneda inválido ignorado: ${currencyId}`);
         }
       }
-      subOffice.currencies = updatedCurrencies;
-    }
 
+      subOffice.currencies = currentCurrencies;
+    }
     // Manejar la actualización de usuarios
     if (sub_officeData.users) {
       const validUserIds = sub_officeData.users.filter((id) => {
