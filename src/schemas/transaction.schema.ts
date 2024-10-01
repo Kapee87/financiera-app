@@ -1,9 +1,6 @@
 /* eslint-disable */
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { User } from './user.schema';
-import { SubOffice } from './sub_office.schema';
-import { Currency } from './currency.schema';
 
 // Definimos el tipo TransactionDocument, que es Transaction + Document de Mongoose
 export type TransactionDocument = Transaction & Document;
@@ -13,13 +10,13 @@ export type TransactionDocument = Transaction & Document;
 })
 export class Transaction {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  user: User;
+  user: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'SubOffice', required: true })
-  subOffice: SubOffice;
+  subOffice: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Currency', required: true })
-  currency: Currency;
+  currency: Types.ObjectId;
 
   @Prop({ enum: ['buy', 'sell', 'check'], required: true })
   type: string;

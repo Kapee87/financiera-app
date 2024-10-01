@@ -1,5 +1,13 @@
 /* eslint-disable */
-import { Controller, Get, Post, Put, Param, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Param,
+  Body,
+  Delete,
+} from '@nestjs/common';
 
 import { CreateCashRegisterDto } from '../../dtos/create-cash-register.dto';
 import { UpdateCashRegisterDto } from '../../dtos/update-cash-register.dto';
@@ -33,5 +41,9 @@ export class CashRegisterController {
   @Get()
   listAllCashRegisters(): Promise<CashRegister[]> {
     return this.cashRegisterService.listAllCashRegisters();
+  }
+  @Delete()
+  deleteAllForDevelopment(): Promise<any> {
+    return this.cashRegisterService.deleteAllForDevelopment();
   }
 }

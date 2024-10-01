@@ -1,5 +1,10 @@
 /* eslint-disable */
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -15,6 +20,9 @@ export class CashRegisterService {
     @InjectModel(CashRegister.name)
     private cashRegisterModel: Model<CashRegisterDocument>,
   ) {}
+  private truncateDate(date: Date): Date {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  }
 
   async startDay(
     createCashRegisterDto: CreateCashRegisterDto,
@@ -25,9 +33,18 @@ export class CashRegisterService {
     if (existingRegister) {
       throw new Error('Ya existe una caja abierta para esta sub-oficina hoy');
     }
+
+    if (createCashRegisterDto.date === undefined) {
+      createCashRegisterDto.date = this.truncateDate(new Date());
+    } else {
+      createCashRegisterDto.date = this.truncateDate(
+        new Date(createCashRegisterDto.date),
+      );
+    }
+
     const cashRegister = new this.cashRegisterModel({
       ...createCashRegisterDto,
-      closing_balance: createCashRegisterDto.opening_balance, // Inicializamos con el saldo de apertura
+      closing_balance: createCashRegisterDto.opening_balance,
       total_income: 0,
       total_expenses: 0,
       difference: 0,
@@ -58,6 +75,8 @@ export class CashRegisterService {
     amount: number,
     commission: number,
   ): Promise<void> {
+    console.log(subOfficeId);
+
     const cashRegister =
       await this.getCurrentCashRegisterForSubOffice(subOfficeId);
     if (!cashRegister) {
@@ -74,18 +93,6 @@ export class CashRegisterService {
     await cashRegister.save();
   }
 
-  async getCurrentCashRegisterForSubOffice(
-    subOfficeId: string,
-  ): Promise<CashRegisterDocument | null> {
-    const today = new Date().toISOString().split('T')[0];
-    return this.cashRegisterModel
-      .findOne({
-        sub_office: subOfficeId,
-        date: today,
-      })
-      .exec();
-  }
-
   async getCashRegisterByDate(date: string): Promise<CashRegister> {
     return this.cashRegisterModel.findOne({ date });
   }
@@ -93,14 +100,42 @@ export class CashRegisterService {
   async listAllCashRegisters(): Promise<CashRegister[]> {
     return this.cashRegisterModel.find();
   }
+  async getCurrentCashRegisterForSubOffice(
+    subOfficeId: string,
+  ): Promise<CashRegisterDocument | null> {
+    try {
+      const today = this.truncateDate(new Date());
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const cashRegister = await this.cashRegisterModel
+        .findOne({
+          sub_office: subOfficeId,
+          date: {
+            $gte: today,
+            $lt: tomorrow,
+          },
+        })
+        .exec();
+      return cashRegister;
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   async addCommission(subOfficeId: string, commission: number): Promise<void> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = this.truncateDate(new Date());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
     const updatedCashRegister = await this.cashRegisterModel
       .findOneAndUpdate(
         {
           sub_office: subOfficeId,
-          date: today,
+          date: {
+            $gte: today,
+            $lt: tomorrow,
+          },
         },
         {
           $inc: {
@@ -114,8 +149,15 @@ export class CashRegisterService {
 
     if (!updatedCashRegister) {
       throw new NotFoundException(
-        `No se encontro la caja diaria para la sub-oficina con ID ${subOfficeId}`,
+        `No se encontró la caja diaria para la sub-oficina con ID ${subOfficeId}`,
       );
+    }
+  }
+  async deleteAllForDevelopment(): Promise<any> {
+    try {
+      return this.cashRegisterModel.deleteMany();
+    } catch (error) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
 }

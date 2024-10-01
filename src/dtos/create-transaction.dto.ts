@@ -6,19 +6,20 @@ import {
   IsOptional,
   IsMongoId,
 } from 'class-validator';
+import { Types } from 'mongoose';
 
 export class CreateTransactionDto {
   @IsMongoId()
   @IsNotEmpty()
-  user: string; // ID del usuario que realiza la transacción
+  user: Types.ObjectId; // ID del usuario que realiza la transacción
 
   @IsMongoId()
   @IsNotEmpty()
-  subOffice: string; // ID de la sub-agencia
+  subOffice: Types.ObjectId; // ID de la sub-agencia
 
   @IsMongoId()
   @IsNotEmpty()
-  currency: string; // ID de la moneda
+  currency: Types.ObjectId; // ID de la moneda
 
   @IsEnum(['buy', 'sell', 'check'])
   @IsNotEmpty()

@@ -21,7 +21,7 @@ export class SubOffice {
   @Prop({ required: true, type: Number, default: 0 })
   cashOnhand: number; // Dinero en efectivo disponible en la sub-agencia
 
-  @Prop({ type: [Types.ObjectId], ref: User.name }) // Referencia a usuarios
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }] }) // Referencia a usuarios
   users: Types.ObjectId[]; // Lista de usuarios que tienen acceso a esta sucursal
 
   @Prop({

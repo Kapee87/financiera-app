@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, SchemaTypes } from 'mongoose';
+import { Document, SchemaTypes, Types } from 'mongoose';
 
 export type CashRegisterDocument = CashRegister & Document;
 
@@ -25,7 +25,7 @@ export class CashRegister {
   difference: number;
 
   @Prop({ type: SchemaTypes.ObjectId, ref: 'SubOffice', required: true })
-  sub_office: string;
+  sub_office: Types.ObjectId;
 }
 
 export const CashRegisterSchema = SchemaFactory.createForClass(CashRegister);

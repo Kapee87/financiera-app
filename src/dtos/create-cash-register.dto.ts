@@ -5,11 +5,11 @@ import { SchemaTypes } from 'mongoose';
 
 export class CreateCashRegisterDto {
   @Prop({ type: Date, required: true })
-  readonly date: Date;
+  date: Date;
 
   @Prop({ type: Number, required: true })
-  readonly opening_balance: number;
+  opening_balance: number;
 
   @Prop({ type: SchemaTypes.ObjectId, ref: 'SubOffice', required: true })
-  readonly sub_office: string;
+  sub_office: string;
 }

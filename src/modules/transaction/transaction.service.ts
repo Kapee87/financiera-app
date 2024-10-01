@@ -42,15 +42,24 @@ export class TransactionService {
 
     // Validaciones (mantener las existentes)
 
-    const subOfficeData = await this.subOfficeService.findOne(subOffice);
-    const currencyData = await this.currencyService.findOne(currency);
+    const subOfficeData = await this.subOfficeService.findOne(
+      subOffice.toString(),
+    );
+    const currencyData = await this.currencyService.findOne(
+      currency.toString(),
+    );
 
     // Verificar stock y actualizar
-    await this.updateStocks(subOffice, currency, amount, type);
+    await this.updateStocks(
+      subOffice.toString(),
+      currency.toString(),
+      amount,
+      type,
+    );
 
     // Manejar la caja
     await this.handleCashRegister(
-      subOffice,
+      subOffice.toString(),
       type,
       amount,
       exchange_rate,
@@ -111,7 +120,12 @@ export class TransactionService {
   }
 
   async findAll(): Promise<Transaction[]> {
-    return this.transactionModel.find().exec();
+    return this.transactionModel
+      .find()
+      .populate('user', 'lastname email _id role')
+      .populate('subOffice', 'name _id')
+      .populate('currency')
+      .exec();
   }
 
   async findOne(id: string): Promise<Transaction> {
