@@ -1,13 +1,13 @@
 /* eslint-disable */
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
-import { SchemaTypes } from 'mongoose';
+import { SchemaTypes, Types } from 'mongoose';
 
 @Schema({
   timestamps: true,
 })
 export class Currency {
   @Prop({ type: SchemaTypes.ObjectId, auto: true })
-  _id: string;
+  _id: Types.ObjectId;
 
   @Prop({ required: true })
   name: string; // Nombre de la moneda (ej. Dólar, Euro)

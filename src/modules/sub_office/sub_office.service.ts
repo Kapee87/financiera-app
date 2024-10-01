@@ -1,7 +1,13 @@
 /* eslint-disable */
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
+import { createSubOfficeDto } from 'src/dtos/create-subOffice.dto';
+import { updateSubOfficeDto } from 'src/dtos/update-subOffice.dto';
 import { SubOffice } from 'src/schemas/sub_office.schema';
 
 @Injectable()
@@ -10,7 +16,9 @@ export class SubOfficeService {
     @InjectModel(SubOffice.name) private sub_officeModel: Model<SubOffice>,
   ) {}
 
-  async create(sub_officeData: Partial<SubOffice>): Promise<SubOffice> {
+  async create(
+    sub_officeData: Partial<createSubOfficeDto>,
+  ): Promise<SubOffice> {
     const newSub_office = new this.sub_officeModel(sub_officeData);
     return newSub_office.save();
   }
@@ -34,39 +42,101 @@ export class SubOfficeService {
     return subOffice;
   }
 
-  async update(id: string, sub_officeData: Partial<any>): Promise<SubOffice> {
-    const subOffice = await this.sub_officeModel.findById(id).exec();
+  async update(
+    id: string | Types.ObjectId,
+    sub_officeData: Partial<updateSubOfficeDto>,
+  ): Promise<SubOffice> {
+    let objectId: Types.ObjectId;
+
+    try {
+      objectId = new Types.ObjectId(id);
+    } catch (error) {
+      throw new BadRequestException(`ID de sucursal inválido: ${id}`);
+    }
+    const subOffice = await this.sub_officeModel.findById(objectId).exec();
+    console.log('subOffice ', subOffice);
+
     if (!subOffice) {
       throw new NotFoundException(`No se encontró la sucursal con ID ${id}`);
     }
 
-    // Validar que las currencies no se repitan
-    const currencyIds = subOffice.currencies.map(c => c.currency.toString());
-    const idsToBeUpdated = Object.keys(sub_officeData.currencies || {});
-    const repeatedIds = idsToBeUpdated.filter(id => currencyIds.includes(id));
-    if (repeatedIds.length > 0) {
-      throw new BadRequestException(
-        `La(s) moneda(s) con ID(s) ${repeatedIds.join(', ')} ya se encuentran en la sucursal con ID ${id}`,
-      );
+    // Manejar la actualización de monedas
+    if (sub_officeData.currencies) {
+      const currentCurrencies = subOffice.currencies || [];
+      const updatedCurrencies = [];
+
+      for (const currencyData of sub_officeData.currencies) {
+        const currencyId = currencyData.currency;
+
+        if (Types.ObjectId.isValid(currencyId)) {
+          try {
+            const objectId = new Types.ObjectId(currencyId);
+
+            const existingCurrency = currentCurrencies.find((c) =>
+              c.currency.equals(objectId),
+            );
+
+            if (existingCurrency) {
+              // Actualizar moneda existente
+              existingCurrency.stock = currencyData.stock;
+              updatedCurrencies.push(existingCurrency);
+            } else {
+              // Agregar nueva moneda
+              updatedCurrencies.push({
+                currency: objectId,
+                stock: currencyData.stock,
+              });
+            }
+          } catch (error) {
+            console.warn(
+              `Error al procesar la moneda con ID ${currencyId}: ${error.message}`,
+            );
+          }
+        } else {
+          console.warn(`ID de moneda inválido ignorado: ${currencyId}`);
+        }
+      }
+      subOffice.currencies = updatedCurrencies;
     }
 
-    // Validar que los usuarios no se repitan
-    const userIds = subOffice.users.map(u => u.toString());
-    const usersToBeUpdated = sub_officeData.users || [];
-    const repeatedUserIds = usersToBeUpdated.filter((id: string) => userIds.includes(id));
-    if (repeatedUserIds.length > 0) {
-      throw new BadRequestException(
-        `El(os) usuario(s) con ID(s) ${repeatedUserIds.join(', ')} ya se encuentran en la sucursal con ID ${id}`,
+    // Manejar la actualización de usuarios
+    if (sub_officeData.users) {
+      const validUserIds = sub_officeData.users.filter((id) => {
+        try {
+          new Types.ObjectId(id);
+          return true;
+        } catch {
+          console.warn(`ID de usuario inválido ignorado: ${id}`);
+          return false;
+        }
+      });
+
+      const currentUserIds = subOffice.users.map((u) => u);
+      const newUserIds = validUserIds.filter(
+        (id) => !currentUserIds.includes(id),
       );
-    }
-    const updatedSub_office = this.sub_officeModel
-      .findByIdAndUpdate(id, sub_officeData, { new: true })
-      .exec();
-    if (!updatedSub_office) {
-      throw new NotFoundException(`No se encontró la sucursal con ID ${id}`);
+      subOffice.users = [
+        ...subOffice.users,
+        ...newUserIds.map((id) => new Types.ObjectId(id)),
+      ];
     }
 
-    return updatedSub_office;
+    // Actualizar otros campos
+    for (const [key, value] of Object.entries(sub_officeData)) {
+      if (key !== 'currencies' && key !== 'users') {
+        subOffice[key] = value;
+      }
+    }
+
+    // Guardar los cambios
+    try {
+      const updatedSubOffice = await subOffice.save();
+      return updatedSubOffice;
+    } catch (error) {
+      throw new BadRequestException(
+        `Error al guardar la sucursal: ${error.message}`,
+      );
+    }
   }
 
   async updateCurrencyStock(

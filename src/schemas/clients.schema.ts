@@ -1,5 +1,6 @@
 /* eslint-disable */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { SchemaType, SchemaTypes } from 'mongoose';
 
 export class Client {
   @Prop({ required: true })
@@ -16,6 +17,9 @@ export class Client {
 
   @Prop({ type: String, default: '' })
   mail?: string;
+
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Transaction', default: [] })
+  transactions?: string[];
 }
 
 export const ClientSchema = SchemaFactory.createForClass(Client);
