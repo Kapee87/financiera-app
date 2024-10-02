@@ -24,7 +24,7 @@ import { Roles } from 'src/utils/enums/roles.enum';
 import { JwtService } from '@nestjs/jwt';
 
 @Controller('users')
-@UseGuards(IsActiveGuard, JwtAuthGuard)
+// @UseGuards(IsActiveGuard, JwtAuthGuard)
 export class UsersController {
   constructor(
     private usersService: UsersService,
@@ -47,7 +47,7 @@ export class UsersController {
   }
 
   @Post('/')
-  @UseGuards(AdminGuard)
+  // @UseGuards(AdminGuard)
   createUser(@Body() body: userDto) {
     if (body.role === Roles.SuperAdmin) {
       throw new HttpException('No se puede crear un manager o superAdmin', 400);

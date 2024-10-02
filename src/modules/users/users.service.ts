@@ -72,7 +72,9 @@ export class UsersService {
       const userCreated = await this.userModel.create(newUser);
       return userCreated;
     } catch (error) {
-      throw new ConflictException(error.message);
+      throw new ConflictException(
+        'No se pudo crear el usuario: ' + error.message,
+      );
     }
   }
 
