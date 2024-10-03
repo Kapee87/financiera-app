@@ -70,27 +70,37 @@ export class CurrencyService {
   async updateGlobalStock(
     currencyId: string,
     amount: number,
-    operation: 'increase' | 'decrease',
+    operation: 'increase' | 'decrease' | 'set',
   ): Promise<void> {
     const currency = await this.currencyModel.findById(currencyId);
 
     if (!currency) {
       throw new NotFoundException(
-        `No es encontró la moneda con ID ${currencyId}`,
+        `No se encontró la moneda con ID ${currencyId}`,
       );
     }
 
-    if (operation === 'increase') {
-      currency.globalStock += amount;
-    } else if (operation === 'decrease') {
-      if (currency.globalStock < amount) {
-        throw new BadRequestException(
-          'Stock global insuficiente para realizar esta operación',
-        );
-      }
-      currency.globalStock -= amount;
+    switch (operation) {
+      case 'increase':
+        currency.globalStock += amount;
+        break;
+      case 'decrease':
+        if (currency.globalStock < amount) {
+          throw new Error(
+            'Stock global insuficiente para realizar esta operación',
+          );
+        }
+        currency.globalStock -= amount;
+        break;
+      case 'set':
+        currency.globalStock = amount;
+        break;
     }
 
     await currency.save();
+  }
+
+  async findByCode(code: string): Promise<Currency | null> {
+    return this.currencyModel.findOne({ code }).exec();
   }
 }

@@ -17,14 +17,14 @@ export class Currency {
 
   @Prop({
     required: true,
-  })
-  exchangeRate: number; // Tasa actual en relación con otras monedas
-
-  @Prop({
-    required: true,
     default: 0,
   })
   globalStock: number; // Stock global en la empresa
+
+  @Prop({
+    required: true,
+  })
+  exchangeRate: number; // Tasa actual en relación con el peso ARS
 }
 
 export const CurrencySchema = SchemaFactory.createForClass(Currency);

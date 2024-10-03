@@ -16,19 +16,25 @@ export class Transaction {
   subOffice: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Currency', required: true })
-  currency: Types.ObjectId;
+  sourceCurrency: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Currency', required: true })
+  targetCurrency: Types.ObjectId;
+
+  @Prop({ type: Number, required: true })
+  sourceAmount: number;
+
+  @Prop({ type: Number, required: true })
+  targetAmount: number;
+
+  @Prop({ type: Number })
+  exchange_rate: number; // Tasa de cambio distinta a la seteada en la moneda - opcional | falta implementar método -
+
+  @Prop({ type: Number })
+  commission?: number; //Comisión en caso de cheque - opcional -
 
   @Prop({ enum: ['buy', 'sell', 'check'], required: true })
   type: string;
-
-  @Prop({ type: Number, required: true })
-  amount: number;
-
-  @Prop({ type: Number })
-  exchange_rate: number;
-
-  @Prop({ type: Number })
-  commission: number;
 }
 
 // Usamos SchemaFactory para crear el esquema

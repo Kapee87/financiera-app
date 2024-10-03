@@ -33,27 +33,31 @@ export class TransactionService {
     const {
       user,
       subOffice,
-      currency,
+      sourceCurrency,
+      targetCurrency,
       type,
-      amount,
-      exchange_rate,
-      commission,
+      sourceAmount,
+      targetAmount,
+      exchangeRate,
     } = createTransactionDto;
-
-    // Validaciones (mantener las existentes)
 
     const subOfficeData = await this.subOfficeService.findOne(
       subOffice.toString(),
     );
-    const currencyData = await this.currencyService.findOne(
-      currency.toString(),
+    const sourceCurrencyData = await this.currencyService.findOne(
+      sourceCurrency.toString(),
+    );
+    const targetCurrencyData = await this.currencyService.findOne(
+      targetCurrency.toString(),
     );
 
-    // Verificar stock y actualizar
+    // Verificar y actualizar stocks
     await this.updateStocks(
       subOffice.toString(),
-      currency.toString(),
-      amount,
+      sourceCurrency.toString(),
+      targetCurrency.toString(),
+      sourceAmount,
+      targetAmount,
       type,
     );
 
@@ -61,62 +65,94 @@ export class TransactionService {
     await this.handleCashRegister(
       subOffice.toString(),
       type,
-      amount,
-      exchange_rate,
-      commission,
+      sourceAmount,
+      targetAmount,
+      exchangeRate,
     );
 
-    // Registrar la transacción
+    // Crear la transacción
     const transaction = new this.transactionModel(createTransactionDto);
     return transaction.save();
   }
 
   private async updateStocks(
     subOfficeId: string,
-    currencyId: string,
-    amount: number,
+    sourceCurrencyId: string,
+    targetCurrencyId: string,
+    sourceAmount: number,
+    targetAmount: number,
     type: string,
   ): Promise<void> {
-    const stockUpdateType =
-      type === 'sell' || type === 'check' ? 'decrease' : 'increase';
+    if (type === 'buy') {
+      await this.subOfficeService.updateCurrencyStock(
+        subOfficeId,
+        sourceCurrencyId,
+        sourceAmount,
+        'increase',
+      );
+      await this.subOfficeService.updateCurrencyStock(
+        subOfficeId,
+        targetCurrencyId,
+        targetAmount,
+        'decrease',
+      );
+    } else if (type === 'sell') {
+      await this.subOfficeService.updateCurrencyStock(
+        subOfficeId,
+        sourceCurrencyId,
+        sourceAmount,
+        'decrease',
+      );
+      await this.subOfficeService.updateCurrencyStock(
+        subOfficeId,
+        targetCurrencyId,
+        targetAmount,
+        'increase',
+      );
+    } else if (type === 'exchange') {
+      await this.subOfficeService.updateCurrencyStock(
+        subOfficeId,
+        sourceCurrencyId,
+        sourceAmount,
+        'decrease',
+      );
+      await this.subOfficeService.updateCurrencyStock(
+        subOfficeId,
+        targetCurrencyId,
+        targetAmount,
+        'increase',
+      );
+    }
 
-    // Actualizar stock en la sub-oficina
-    await this.subOfficeService.updateCurrencyStock(
-      subOfficeId,
-      currencyId,
-      amount,
-      stockUpdateType,
-    );
-
-    // Actualizar stock global
+    // Actualizar stocks globales
     await this.currencyService.updateGlobalStock(
-      currencyId,
-      amount,
-      stockUpdateType,
+      sourceCurrencyId,
+      sourceAmount,
+      type === 'buy' ? 'increase' : 'decrease',
+    );
+    await this.currencyService.updateGlobalStock(
+      targetCurrencyId,
+      targetAmount,
+      type === 'sell' ? 'increase' : 'decrease',
     );
   }
 
   private async handleCashRegister(
     subOfficeId: string,
     type: string,
-    amount: number,
+    sourceAmount: number,
+    targetAmount: number,
     exchangeRate: number,
-    commission?: number,
   ): Promise<void> {
-    const totalAmount = amount * exchangeRate;
+    let cashChange = 0;
 
     if (type === 'buy') {
-      await this.cashService.updateCashRegister(subOfficeId, -totalAmount, 0); // Salida de efectivo
+      cashChange = -targetAmount; // Salida de efectivo en moneda local
     } else if (type === 'sell') {
-      await this.cashService.updateCashRegister(subOfficeId, totalAmount, 0); // Entrada de efectivo
-    } else if (type === 'check') {
-      if (!commission) {
-        throw new BadRequestException(
-          'La comisión es obligatoria para cambio de cheques',
-        );
-      }
-      await this.cashService.updateCashRegister(subOfficeId, 0, commission); // Registrar comisión
+      cashChange = sourceAmount; // Entrada de efectivo en moneda local
     }
+
+    await this.cashService.updateCashRegister(subOfficeId, cashChange);
   }
 
   async findAll(): Promise<Transaction[]> {
@@ -124,7 +160,8 @@ export class TransactionService {
       .find()
       .populate('user', 'lastname email _id role')
       .populate('subOffice', 'name _id')
-      .populate('currency')
+      .populate('sourceCurrency', 'name _id')
+      .populate('targetCurrency', 'name _id')
       .exec();
   }
 

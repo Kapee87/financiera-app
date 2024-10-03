@@ -6,6 +6,8 @@ import { SubOfficeController } from './sub_office.controller';
 import { SubOfficeService } from './sub_office.service';
 import { TransactionModule } from '../transaction/transaction.module';
 import { CurrencyModule } from '../currency/currency.module';
+import { OfficeModule } from '../office/office.module';
+import { CurrencyService } from '../currency/currency.service';
 
 @Module({
   imports: [
@@ -14,6 +16,7 @@ import { CurrencyModule } from '../currency/currency.module';
     ]),
     forwardRef(() => TransactionModule),
     forwardRef(() => CurrencyModule),
+    forwardRef(() => OfficeModule),
   ],
   controllers: [SubOfficeController],
   providers: [SubOfficeService],

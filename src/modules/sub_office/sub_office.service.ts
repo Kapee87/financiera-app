@@ -42,8 +42,9 @@ export class SubOfficeService {
       .populate({
         path: 'currencies.currency',
         model: 'Currency',
+        select: 'name _id code globalStock',
       })
-      .populate('users', 'username lastname _id')
+      .populate('users')
       .exec();
   }
 
@@ -154,7 +155,7 @@ export class SubOfficeService {
     subOfficeId: string,
     currencyId: string,
     amount: number,
-    operation: 'increase' | 'decrease',
+    operation: 'increase' | 'decrease' | 'set',
   ): Promise<void> {
     const subOffice = await this.sub_officeModel.findById(subOfficeId);
 
@@ -165,22 +166,34 @@ export class SubOfficeService {
     }
 
     const currencyInSubOffice = subOffice.currencies.find(
-      (c) => c.currency.toString() === currencyId.toString(),
+      (c) => c.currency.toString() === currencyId,
     );
 
     if (!currencyInSubOffice) {
-      throw new NotFoundException(
-        `La moneda con el ID ${currencyId} no se encuentra en la sucursal con ID ${subOfficeId}`,
-      );
+      // Si la moneda no existe en la sucursal, la agregamos
+      subOffice.currencies.push({
+        currency: new Types.ObjectId(currencyId),
+        stock: 0,
+      });
     }
 
-    if (operation === 'increase') {
-      currencyInSubOffice.stock += amount;
-    } else if (operation === 'decrease') {
-      if (currencyInSubOffice.stock < amount) {
-        throw new Error('Stock insuficiente para realizar esta operación');
-      }
-      currencyInSubOffice.stock -= amount;
+    const index = subOffice.currencies.findIndex(
+      (c) => c.currency.toString() === currencyId,
+    );
+
+    switch (operation) {
+      case 'increase':
+        subOffice.currencies[index].stock += amount;
+        break;
+      case 'decrease':
+        if (subOffice.currencies[index].stock < amount) {
+          throw new Error('Stock insuficiente para realizar esta operación');
+        }
+        subOffice.currencies[index].stock -= amount;
+        break;
+      case 'set':
+        subOffice.currencies[index].stock = amount;
+        break;
     }
 
     await subOffice.save();

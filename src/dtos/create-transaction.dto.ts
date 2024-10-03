@@ -10,28 +10,29 @@ import { Types } from 'mongoose';
 
 export class CreateTransactionDto {
   @IsMongoId()
-  @IsNotEmpty()
   user: Types.ObjectId; // ID del usuario que realiza la transacción
 
   @IsMongoId()
-  @IsNotEmpty()
   subOffice: Types.ObjectId; // ID de la sub-agencia
 
   @IsMongoId()
-  @IsNotEmpty()
-  currency: Types.ObjectId; // ID de la moneda
+  sourceCurrency: Types.ObjectId; // ID de la moneda de origen
+
+  @IsMongoId()
+  targetCurrency: Types.ObjectId; // ID de la moneda de destino
 
   @IsEnum(['buy', 'sell', 'check'])
-  @IsNotEmpty()
   type: string; // Tipo de transacción: 'buy', 'sell' o 'check'
 
   @IsNumber()
-  @IsNotEmpty()
-  amount: number; // Cantidad de moneda en la transacción
+  sourceAmount: number; // Cantidad de moneda de origen
+
+  @IsNumber()
+  targetAmount: number; // Cantidad de moneda de destino
 
   @IsNumber()
   @IsOptional()
-  exchange_rate?: number; // Tasa de cambio (opcional, dependiendo del tipo de transacción)
+  exchangeRate?: number; // Tasa de cambio (opcional, dependiendo del tipo de transacción)
 
   @IsNumber()
   @IsOptional()

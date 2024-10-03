@@ -19,7 +19,7 @@ export class SubOffice {
   phone: string;
 
   @Prop({ required: true, type: Number, default: 0 })
-  cashOnhand: number; // Dinero en efectivo disponible en la sub-agencia
+  cashOnhand: number; // Dinero en efectivo disponible en la sub-agencia(pesos ARS)
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }] }) // Referencia a usuarios
   users: Types.ObjectId[]; // Lista de usuarios que tienen acceso a esta sucursal

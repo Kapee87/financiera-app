@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { CashRegisterController } from './cash-register.controller';
@@ -10,6 +10,8 @@ import {
   CashRegisterSchema,
 } from 'src/schemas/cash_registers.schema';
 import { CashRegisterService } from './cash_register.service';
+import { CurrencyModule } from '../currency/currency.module';
+import { SubOfficeModule } from '../sub_office/sub_office.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { CashRegisterService } from './cash_register.service';
       { name: CashRegister.name, schema: CashRegisterSchema },
       { name: SubOffice.name, schema: SubOfficeSchema },
     ]),
+    forwardRef(() => CurrencyModule),
+    forwardRef(() => SubOfficeModule),
   ],
   providers: [CashRegisterService],
   controllers: [CashRegisterController],

@@ -1,10 +1,5 @@
 /* eslint-disable */
-import {
-  HttpException,
-  HttpStatus,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -13,13 +8,18 @@ import {
 } from 'src/schemas/cash_registers.schema';
 import { CreateCashRegisterDto } from 'src/dtos/create-cash-register.dto';
 import { UpdateCashRegisterDto } from 'src/dtos/update-cash-register.dto';
+import { CurrencyService } from '../currency/currency.service';
+import { SubOfficeService } from '../sub_office/sub_office.service';
 
 @Injectable()
 export class CashRegisterService {
   constructor(
     @InjectModel(CashRegister.name)
     private cashRegisterModel: Model<CashRegisterDocument>,
+    private currencyService: CurrencyService,
+    private subOfficeService: SubOfficeService,
   ) {}
+
   private truncateDate(date: Date): Date {
     return new Date(date.getFullYear(), date.getMonth(), date.getDate());
   }
@@ -49,7 +49,36 @@ export class CashRegisterService {
       total_expenses: 0,
       difference: 0,
     });
+
+    // Actualizar el stock de ARS en la sub-oficina
+    await this.updateARSStock(
+      createCashRegisterDto.sub_office,
+      createCashRegisterDto.opening_balance,
+    );
+
     return cashRegister.save();
+  }
+
+  private async updateARSStock(
+    subOfficeId: string,
+    amount: number,
+  ): Promise<void> {
+    const arsCurrency = await this.currencyService.findByCode('ARS');
+    if (!arsCurrency) {
+      throw new NotFoundException('No se encontró la moneda ARS');
+    }
+
+    await this.subOfficeService.updateCurrencyStock(
+      subOfficeId,
+      arsCurrency._id.toString(),
+      amount,
+      'set',
+    );
+    await this.currencyService.updateGlobalStock(
+      arsCurrency._id.toString(),
+      amount,
+      'set',
+    );
   }
 
   async closeDay(
@@ -70,13 +99,7 @@ export class CashRegisterService {
     return cashRegister.save();
   }
 
-  async updateCashRegister(
-    subOfficeId: string,
-    amount: number,
-    commission: number,
-  ): Promise<void> {
-    console.log(subOfficeId);
-
+  async updateCashRegister(subOfficeId: string, amount: number): Promise<void> {
     const cashRegister =
       await this.getCurrentCashRegisterForSubOffice(subOfficeId);
     if (!cashRegister) {
@@ -86,11 +109,31 @@ export class CashRegisterService {
     }
 
     cashRegister.closing_balance += amount;
-    cashRegister.total_income += amount > 0 ? amount : 0;
-    cashRegister.total_expenses += amount < 0 ? -amount : 0;
-    cashRegister.total_income += commission;
+    if (amount > 0) {
+      cashRegister.total_income += amount;
+    } else {
+      cashRegister.total_expenses += Math.abs(amount);
+    }
 
     await cashRegister.save();
+  }
+
+  async getCurrentCashRegisterForSubOffice(
+    subOfficeId: string,
+  ): Promise<CashRegisterDocument | null> {
+    const today = this.truncateDate(new Date());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    return this.cashRegisterModel
+      .findOne({
+        sub_office: subOfficeId,
+        date: {
+          $gte: today,
+          $lt: tomorrow,
+        },
+      })
+      .exec();
   }
 
   async getCashRegisterByDate(date: string): Promise<CashRegister> {
@@ -100,64 +143,9 @@ export class CashRegisterService {
   async listAllCashRegisters(): Promise<CashRegister[]> {
     return this.cashRegisterModel.find();
   }
-  async getCurrentCashRegisterForSubOffice(
-    subOfficeId: string,
-  ): Promise<CashRegisterDocument | null> {
-    try {
-      const today = this.truncateDate(new Date());
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const cashRegister = await this.cashRegisterModel
-        .findOne({
-          sub_office: subOfficeId,
-          date: {
-            $gte: today,
-            $lt: tomorrow,
-          },
-        })
-        .exec();
-      return cashRegister;
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  async addCommission(subOfficeId: string, commission: number): Promise<void> {
-    const today = this.truncateDate(new Date());
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const updatedCashRegister = await this.cashRegisterModel
-      .findOneAndUpdate(
-        {
-          sub_office: subOfficeId,
-          date: {
-            $gte: today,
-            $lt: tomorrow,
-          },
-        },
-        {
-          $inc: {
-            total_income: commission,
-            closing_balance: commission,
-          },
-        },
-        { new: true },
-      )
-      .exec();
-
-    if (!updatedCashRegister) {
-      throw new NotFoundException(
-        `No se encontró la caja diaria para la sub-oficina con ID ${subOfficeId}`,
-      );
-    }
-  }
+  // Método para desarrollo, usar con precaución
   async deleteAllForDevelopment(): Promise<any> {
-    try {
-      return this.cashRegisterModel.deleteMany();
-    } catch (error) {
-      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-    }
+    return this.cashRegisterModel.deleteMany();
   }
 }
