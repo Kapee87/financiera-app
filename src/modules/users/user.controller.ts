@@ -189,7 +189,7 @@ export class UsersController {
    * @returns - El usuario eliminado
    */
   @Delete('delete-user/:id')
-  @UseGuards(AdminGuard, SuperAdminGuard)
+  @UseGuards(AdminGuard)
   deleteUser(@Param('id') id: string) {
     return this.usersService.deleteUser(id);
   }
