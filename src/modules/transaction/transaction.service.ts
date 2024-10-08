@@ -1,11 +1,5 @@
 /* eslint-disable */
-import {
-  BadRequestException,
-  forwardRef,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -16,6 +10,7 @@ import { SubOfficeService } from '../sub_office/sub_office.service';
 import { CurrencyService } from '../currency/currency.service';
 import { CashRegisterService } from '../cash_register/cash_register.service';
 import { CreateTransactionDto } from 'src/dtos/create-transaction.dto';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class TransactionService {
@@ -25,6 +20,7 @@ export class TransactionService {
     private subOfficeService: SubOfficeService,
     private currencyService: CurrencyService,
     private cashService: CashRegisterService,
+    private userService: UsersService,
   ) {}
 
   async create(
@@ -36,11 +32,11 @@ export class TransactionService {
       sourceCurrency,
       targetCurrency,
       type,
-      sourceAmount,
-      targetAmount,
+      amount,
       exchangeRate,
     } = createTransactionDto;
 
+    const userData = await this.userService.findOneById(user.toString());
     const subOfficeData = await this.subOfficeService.findOne(
       subOffice.toString(),
     );
@@ -50,6 +46,18 @@ export class TransactionService {
     const targetCurrencyData = await this.currencyService.findOne(
       targetCurrency.toString(),
     );
+
+    // Calculate the other amount based on the exchange rate
+    let sourceAmount: number;
+    let targetAmount: number;
+    if (type === 'buy') {
+      sourceAmount = amount;
+      targetAmount = amount * exchangeRate;
+    } else {
+      // sell or exchange
+      targetAmount = amount;
+      sourceAmount = amount / exchangeRate;
+    }
 
     // Verificar y actualizar stocks
     await this.updateStocks(
@@ -70,8 +78,16 @@ export class TransactionService {
       exchangeRate,
     );
 
-    // Crear la transacción
-    const transaction = new this.transactionModel(createTransactionDto);
+    const transaction = new this.transactionModel({
+      ...createTransactionDto,
+      userName: userData.username,
+      subOfficeName: subOfficeData.name,
+      sourceCurrencyCode: sourceCurrencyData.code,
+      targetCurrencyCode: targetCurrencyData.code,
+      sourceAmount,
+      targetAmount,
+    });
+
     return transaction.save();
   }
 
@@ -156,17 +172,20 @@ export class TransactionService {
   }
 
   async findAll(): Promise<Transaction[]> {
-    return this.transactionModel
-      .find()
-      .populate('user', 'lastname email _id role')
-      .populate('subOffice', 'name _id')
-      .populate('sourceCurrency', 'name _id')
-      .populate('targetCurrency', 'name _id')
-      .exec();
+    const transactions = await this.transactionModel.find().exec();
+    return Promise.all(
+      transactions.map((transaction) =>
+        this.populateTransactionData(transaction),
+      ),
+    );
   }
 
   async findOne(id: string): Promise<Transaction> {
-    return this.transactionModel.findById(id).exec();
+    const transaction = await this.transactionModel.findById(id).exec();
+    if (!transaction) {
+      throw new NotFoundException(`Transaction with ID ${id} not found`);
+    }
+    return this.populateTransactionData(transaction);
   }
 
   async update(
@@ -180,5 +199,54 @@ export class TransactionService {
 
   async delete(id: string): Promise<Transaction> {
     return this.transactionModel.findByIdAndDelete(id).exec();
+  }
+
+  //métodos para manejar los datos de usuario, sucursal y moneda; cuando no hay datos disponibles, se muestra el nombre '${dato} no disponible'
+
+  private async getUserData(userId: string) {
+    try {
+      const user = await this.userService.findOneById(userId);
+      return { name: user.username };
+    } catch (error) {
+      return { name: 'Usuario no disponible' };
+    }
+  }
+
+  private async getSubOfficeData(subOfficeId: string) {
+    try {
+      const subOffice = await this.subOfficeService.findOne(subOfficeId);
+      return { name: subOffice.name };
+    } catch (error) {
+      return { name: 'Sucursal no disponible' };
+    }
+  }
+
+  private async getCurrencyData(currencyId: string) {
+    try {
+      const currency = await this.currencyService.findOne(currencyId);
+      return { code: currency.code };
+    } catch (error) {
+      return { code: 'Moneda no disponible' };
+    }
+  }
+
+  private async populateTransactionData(
+    transaction: TransactionDocument,
+  ): Promise<Transaction> {
+    const [userData, subOfficeData, sourceCurrencyData, targetCurrencyData] =
+      await Promise.all([
+        this.getUserData(transaction.user.toString()),
+        this.getSubOfficeData(transaction.subOffice.toString()),
+        this.getCurrencyData(transaction.sourceCurrency.toString()),
+        this.getCurrencyData(transaction.targetCurrency.toString()),
+      ]);
+
+    return {
+      ...transaction.toObject(),
+      userName: userData.name,
+      subOfficeName: subOfficeData.name,
+      sourceCurrencyCode: sourceCurrencyData.code,
+      targetCurrencyCode: targetCurrencyData.code,
+    };
   }
 }

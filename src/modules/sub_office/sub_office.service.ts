@@ -32,7 +32,7 @@ export class SubOfficeService {
           `Ya existe una sucursal con ${field}: ${value}`,
         );
       }
-      throw error; // Si no es un error de duplicado, lanzamos el error original
+      throw new ConflictException(error); // Si no es un error de duplicado, lanzamos el error original
     }
   }
 
@@ -187,7 +187,9 @@ export class SubOfficeService {
         break;
       case 'decrease':
         if (subOffice.currencies[index].stock < amount) {
-          throw new Error('Stock insuficiente para realizar esta operación');
+          throw new ConflictException(
+            'Stock insuficiente para realizar esta operación',
+          );
         }
         subOffice.currencies[index].stock -= amount;
         break;

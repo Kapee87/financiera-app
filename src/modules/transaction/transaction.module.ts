@@ -8,6 +8,7 @@ import { Transaction, TransactionSchema } from 'src/schemas/transaction.schema';
 import { SubOfficeModule } from '../sub_office/sub_office.module';
 import { CurrencyModule } from '../currency/currency.module';
 import { CashRegisterModule } from '../cash_register/cash-register.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { CashRegisterModule } from '../cash_register/cash-register.module';
       { name: Transaction.name, schema: TransactionSchema },
     ]),
     forwardRef(() => SubOfficeModule),
+    forwardRef(() => UsersModule),
     CurrencyModule,
     CashRegisterModule,
   ],

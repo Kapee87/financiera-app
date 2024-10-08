@@ -12,14 +12,26 @@ export class Transaction {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   user: Types.ObjectId;
 
+  @Prop({ required: true })
+  userName: string;
+
   @Prop({ type: Types.ObjectId, ref: 'SubOffice', required: true })
   subOffice: Types.ObjectId;
+
+  @Prop({ required: true })
+  subOfficeName: string;
 
   @Prop({ type: Types.ObjectId, ref: 'Currency', required: true })
   sourceCurrency: Types.ObjectId;
 
+  @Prop({ required: true })
+  sourceCurrencyCode: string;
+
   @Prop({ type: Types.ObjectId, ref: 'Currency', required: true })
   targetCurrency: Types.ObjectId;
+
+  @Prop({ required: true })
+  targetCurrencyCode: string;
 
   @Prop({ type: Number, required: true })
   sourceAmount: number;
@@ -27,13 +39,13 @@ export class Transaction {
   @Prop({ type: Number, required: true })
   targetAmount: number;
 
-  @Prop({ type: Number })
-  exchange_rate: number; // Tasa de cambio distinta a la seteada en la moneda - opcional | falta implementar método -
+  @Prop({ type: Number, required: true })
+  exchangeRate: number;
 
   @Prop({ type: Number })
-  commission?: number; //Comisión en caso de cheque - opcional -
+  commission?: number;
 
-  @Prop({ enum: ['buy', 'sell', 'check'], required: true })
+  @Prop({ enum: ['buy', 'sell', 'exchange'], required: true })
   type: string;
 }
 

@@ -25,10 +25,7 @@ export class CreateTransactionDto {
   type: string; // Tipo de transacción: 'buy', 'sell' o 'check'
 
   @IsNumber()
-  sourceAmount: number; // Cantidad de moneda de origen
-
-  @IsNumber()
-  targetAmount: number; // Cantidad de moneda de destino
+  amount: number; // Cantidad de moneda de origen
 
   @IsNumber()
   @IsOptional()
