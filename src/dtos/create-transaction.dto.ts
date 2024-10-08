@@ -1,4 +1,18 @@
 /* eslint-disable */
+/**
+ * DTO para crear una transacción
+ *
+ * Contiene los datos necesarios para crear una transacción
+ *
+ * @property {ObjectId} user - Identificador del usuario que realiza la transacción
+ * @property {ObjectId} subOffice - Identificador de la suboficina en la que se realiza la transacción
+ * @property {ObjectId} sourceCurrency - Identificador de la moneda fuente de la transacción
+ * @property {ObjectId} targetCurrency - Identificador de la moneda destino de la transacción
+ * @property {string} type - Tipo de transacción (buy, sell, check)
+ * @property {number} amount - Monto de la transacción
+ * @property {number} exchangeRate - Tasa de cambio de la moneda (opcional)
+ * @property {number} commission - Comisión de la transacción (opcional)
+ */
 import {
   IsEnum,
   IsNotEmpty,
@@ -10,28 +24,28 @@ import { Types } from 'mongoose';
 
 export class CreateTransactionDto {
   @IsMongoId()
-  user: Types.ObjectId; // ID del usuario que realiza la transacción
+  user: Types.ObjectId;
 
   @IsMongoId()
-  subOffice: Types.ObjectId; // ID de la sub-agencia
+  subOffice: Types.ObjectId;
 
   @IsMongoId()
-  sourceCurrency: Types.ObjectId; // ID de la moneda de origen
+  sourceCurrency: Types.ObjectId;
 
   @IsMongoId()
-  targetCurrency: Types.ObjectId; // ID de la moneda de destino
+  targetCurrency: Types.ObjectId;
 
   @IsEnum(['buy', 'sell', 'check'])
-  type: string; // Tipo de transacción: 'buy', 'sell' o 'check'
+  type: string;
 
   @IsNumber()
-  amount: number; // Cantidad de moneda de origen
-
-  @IsNumber()
-  @IsOptional()
-  exchangeRate?: number; // Tasa de cambio (opcional, dependiendo del tipo de transacción)
+  amount: number;
 
   @IsNumber()
   @IsOptional()
-  commission?: number; // Comisión en caso de que la transacción sea un cheque (opcional)
+  exchangeRate?: number;
+
+  @IsNumber()
+  @IsOptional()
+  commission?: number;
 }

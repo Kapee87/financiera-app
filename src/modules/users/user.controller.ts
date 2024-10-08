@@ -1,4 +1,13 @@
-/* eslint-disable*/
+/* eslint-disable */
+/**
+ * Controlador de usuarios
+ *
+ * Este controlador se encarga de las operaciones CRUD de los usuarios
+ * y de asignar roles a los mismos
+ *
+ * @since 1.0.0
+ * @version 1.0.0
+ */
 import {
   Controller,
   Get,
@@ -26,26 +35,57 @@ import { JwtService } from '@nestjs/jwt';
 @Controller('users')
 // @UseGuards(IsActiveGuard, JwtAuthGuard)
 export class UsersController {
+  /**
+   * Constructor del controlador de usuarios
+   *
+   * Inyecta el servicio de usuarios y el servicio de autenticación por jwt
+   *
+   * @param usersService - Servicio de usuarios
+   * @param jwtService - Servicio de autenticación por jwt
+   */
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
   ) {}
 
+  /**
+   * Obtiene todos los usuarios
+   *
+   * @returns - Un array de usuarios
+   */
   @Get()
   findAll() {
     return this.usersService.findAll();
   }
 
+  /**
+   * Obtiene un usuario por su id
+   *
+   * @param id - Identificador del usuario
+   * @returns - El usuario encontrado o null si no existe
+   */
   @Get('id/:id')
   findOneById(@Param('id') id: string) {
     return this.usersService.findOneById(id);
   }
 
+  /**
+   * Obtiene un usuario por su email
+   *
+   * @param email - Email del usuario
+   * @returns - El usuario encontrado o null si no existe
+   */
   @Get('email/:email')
   findByEmail(@Param('email') email: string) {
     return this.usersService.findByEmail(email);
   }
 
+  /**
+   * Crea un nuevo usuario
+   *
+   * @param body - Información del usuario a crear
+   * @returns - El usuario creado
+   */
   @Post('/')
   // @UseGuards(AdminGuard)
   createUser(@Body() body: userDto) {
@@ -63,6 +103,14 @@ export class UsersController {
     return newUser;
   }
 
+  /**
+   * Actualiza un usuario
+   *
+   * @param id - Identificador del usuario a actualizar
+   * @param user - Información del usuario a actualizar
+   * @param req - Request de la petición
+   * @returns - El usuario actualizado
+   */
   @Put('update-self/:id')
   async updateSelf(
     @Param('id') id: string,
@@ -81,6 +129,13 @@ export class UsersController {
     return this.usersService.updateUser(id, updateUser);
   }
 
+  /**
+   * Actualiza un usuario como administrador
+   *
+   * @param id - Identificador del usuario a actualizar
+   * @param user - Información del usuario a actualizar
+   * @returns - El usuario actualizado
+   */
   @Put('update-user/:id')
   @UseGuards(AdminGuard, SuperAdminGuard)
   updateUser(@Param('id') id: string, @Body() user: userDto) {
@@ -90,6 +145,14 @@ export class UsersController {
     return this.usersService.updateUser(id, user);
   }
 
+  /**
+   * Actualiza un usuario como administrador o super administrador
+   *
+   * @param id - Identificador del usuario a actualizar
+   * @param user - Información del usuario a actualizar
+   * @param req - Request de la petición
+   * @returns - El usuario actualizado
+   */
   @Put('update-admin/:id')
   @UseGuards(AdminGuard, SuperAdminGuard)
   async updateAdmin(
@@ -107,18 +170,35 @@ export class UsersController {
     return this.usersService.updateUser(id, user);
   }
 
+  /**
+   * Elimina un usuario como administrador
+   *
+   * @param id - Identificador del usuario a eliminar
+   * @returns - El usuario eliminado
+   */
   @Delete('delete-admin/:id')
   @UseGuards(SuperAdminGuard)
   deleteAdmin(@Param('id') id: string) {
     return this.usersService.deleteAdmin(id);
   }
 
+  /**
+   * Elimina un usuario como usuario o administrador
+   *
+   * @param id - Identificador del usuario a eliminar
+   * @returns - El usuario eliminado
+   */
   @Delete('delete-user/:id')
   @UseGuards(AdminGuard, SuperAdminGuard)
   deleteUser(@Param('id') id: string) {
     return this.usersService.deleteUser(id);
   }
 
+  /**
+   * Elimina todos los usuarios
+   *
+   * @returns - El número de usuarios eliminados
+   */
   @Delete('deleteAll')
   @UseGuards(SuperAdminGuard)
   deleteAll() {

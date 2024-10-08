@@ -1,4 +1,11 @@
 /* eslint-disable */
+/**
+ * Módulo de oficinas
+ *
+ * Este módulo contiene la lógica para manejar las oficinas
+ *
+ * @module OfficeModule
+ */
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { OfficeService } from './office.service';

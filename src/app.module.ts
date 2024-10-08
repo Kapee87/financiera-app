@@ -1,4 +1,10 @@
 /* eslint-disable */
+/**
+ * Este modulo es el modulo principal de la aplicacion, aqui se configura la conexion
+ * a la base de datos con Mongoose, se importan los modulos de autenticacion, usuarios,
+ * transacciones, oficinas, monedas, cajas registradoras, sub oficinas, gastos y clientes.
+ * El modulo exporta el modulo de Mongoose para que pueda ser utilizado en otros modulos.
+ */
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';

@@ -1,4 +1,12 @@
 /* eslint-disable */
+/**
+ * Servicio para la gestión de suboficinas
+ *
+ * Contiene métodos para crear, obtener, actualizar y eliminar suboficinas
+ *
+  Juan Carlos Gonzalez Ibarra
+ * @since 2022-03-04
+ */
 import {
   BadRequestException,
   ConflictException,
@@ -17,6 +25,14 @@ export class SubOfficeService {
     @InjectModel(SubOffice.name) private sub_officeModel: Model<SubOffice>,
   ) {}
 
+  /**
+   * Crea una nueva suboficina
+   *
+   * Si la suboficina ya existe, lanza un error de conflicto
+   *
+   * @param {Partial<createSubOfficeDto>} sub_officeData - Datos de la suboficina a crear
+   * @returns {Promise<SubOffice>} La suboficina creada
+   */
   async create(
     sub_officeData: Partial<createSubOfficeDto>,
   ): Promise<SubOffice> {
@@ -36,6 +52,11 @@ export class SubOfficeService {
     }
   }
 
+  /**
+   * Obtiene todas las suboficinas
+   *
+   * @returns {Promise<SubOffice[]>} Las suboficinas
+   */
   async findAll(): Promise<SubOffice[]> {
     return this.sub_officeModel
       .find()
@@ -48,6 +69,14 @@ export class SubOfficeService {
       .exec();
   }
 
+  /**
+   * Obtiene una suboficina por su ID
+   *
+   * Si la suboficina no existe, lanza un error de no encontrado
+   *
+   * @param {string} id - ID de la suboficina a obtener
+   * @returns {Promise<SubOffice>} La suboficina
+   */
   async findOne(id: string): Promise<SubOffice> {
     const subOffice = await this.sub_officeModel.findById(id).exec();
     if (!subOffice) {
@@ -56,6 +85,15 @@ export class SubOfficeService {
     return subOffice;
   }
 
+  /**
+   * Actualiza una suboficina
+   *
+   * Si la suboficina no existe, lanza un error de no encontrado
+   *
+   * @param {string} id - ID de la suboficina a actualizar
+   * @param {Partial<updateSubOfficeDto>} sub_officeData - Datos de la suboficina a actualizar
+   * @returns {Promise<SubOffice>} La suboficina actualizada
+   */
   async update(
     id: string | Types.ObjectId,
     sub_officeData: Partial<updateSubOfficeDto>,
@@ -151,6 +189,17 @@ export class SubOfficeService {
     }
   }
 
+  /**
+   * Actualiza el stock de una moneda en una suboficina
+   *
+   * Si la suboficina o la moneda no existen, lanza un error de no encontrado
+   *
+   * @param {string} subOfficeId - ID de la suboficina a actualizar
+   * @param {string} currencyId - ID de la moneda a actualizar
+   * @param {number} amount - Cantidad a agregar o restar al stock
+   * @param {string} operation - 'increase' o 'decrease'
+   * @returns {Promise<void>} No devuelve nada
+   */
   async updateCurrencyStock(
     subOfficeId: string,
     currencyId: string,
@@ -201,6 +250,14 @@ export class SubOfficeService {
     await subOffice.save();
   }
 
+  /**
+   * Elimina una suboficina
+   *
+   * Si la suboficina no existe, lanza un error de no encontrado
+   *
+   * @param {string} id - ID de la suboficina a eliminar
+   * @returns {Promise<string>} Un mensaje de confirmación
+   */
   async delete(id: string): Promise<string> {
     const deletedSub_office = this.sub_officeModel.findByIdAndDelete(id).exec();
 
@@ -209,23 +266,4 @@ export class SubOfficeService {
     }
     return 'Sub agencia eliminada correctamente';
   }
-
-  /* probar y ajustar si hace falta
-  // Método en el modelo de SubOffice
-async getCurrencyStock(currencyId: string): Promise<number> {
-  const currency = await Currency.findById(currencyId);
-
-  if (!currency) {
-    throw new NotFoundException(`Currency with ID ${currencyId} not found`);
-  }
-
-  const stock = this.currencies.find((c) => c.currency.equals(currencyId))?.stock;
-
-  if (stock === undefined) {
-    throw new NotFoundException(`Currency with ID ${currencyId} not found in this sub-office`);
-  }
-
-  return stock;
-} 
-   */
 }

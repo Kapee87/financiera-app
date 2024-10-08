@@ -1,4 +1,13 @@
 /* eslint-disable */
+/**
+ * Servicio para la gestión de transacciones
+ *
+ * Contiene métodos para crear, obtener, actualizar y eliminar transacciones
+ *
+  
+ * @version 1.0.0
+ * @since 2020-07-20
+ */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -14,6 +23,17 @@ import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class TransactionService {
+  /**
+   * Constructor del servicio
+   *
+   * Inicializa el servicio con los modelos y servicios necesarios
+   *
+   * @param transactionModel Modelo de transacciones
+   * @param subOfficeService Servicio de sucursales
+   * @param currencyService Servicio de monedas
+   * @param cashService Servicio de cajas
+   * @param userService Servicio de usuarios
+   */
   constructor(
     @InjectModel(Transaction.name)
     private transactionModel: Model<TransactionDocument>,
@@ -23,6 +43,15 @@ export class TransactionService {
     private userService: UsersService,
   ) {}
 
+  /**
+   * Crea una nueva transacción
+   *
+   * Crea una nueva transacción con los datos proporcionados y actualiza los stocks
+   * y la caja correspondientes
+   *
+   * @param createTransactionDto Datos de la transacción a crear
+   * @returns La transacción creada
+   */
   async create(
     createTransactionDto: CreateTransactionDto,
   ): Promise<Transaction> {
@@ -36,6 +65,7 @@ export class TransactionService {
       exchangeRate,
     } = createTransactionDto;
 
+    // Obtener datos de usuario, sucursal y monedas
     const userData = await this.userService.findOneById(user.toString());
     const subOfficeData = await this.subOfficeService.findOne(
       subOffice.toString(),
@@ -47,7 +77,7 @@ export class TransactionService {
       targetCurrency.toString(),
     );
 
-    // Calculate the other amount based on the exchange rate
+    // Calcular el otro monto basado en la tasa de cambio
     let sourceAmount: number;
     let targetAmount: number;
     if (type === 'buy') {
@@ -91,6 +121,16 @@ export class TransactionService {
     return transaction.save();
   }
 
+  /**
+   * Actualiza los stocks de la sucursal y las monedas correspondientes
+   *
+   * @param subOfficeId Identificador de la sucursal
+   * @param sourceCurrencyId Identificador de la moneda fuente
+   * @param targetCurrencyId Identificador de la moneda destino
+   * @param sourceAmount Monto de la moneda fuente
+   * @param targetAmount Monto de la moneda destino
+   * @param type Tipo de transacción (buy, sell o exchange)
+   */
   private async updateStocks(
     subOfficeId: string,
     sourceCurrencyId: string,
@@ -153,6 +193,15 @@ export class TransactionService {
     );
   }
 
+  /**
+   * Maneja la caja de la sucursal correspondiente
+   *
+   * @param subOfficeId Identificador de la sucursal
+   * @param type Tipo de transacción (buy, sell o exchange)
+   * @param sourceAmount Monto de la moneda fuente
+   * @param targetAmount Monto de la moneda destino
+   * @param exchangeRate Tasa de cambio
+   */
   private async handleCashRegister(
     subOfficeId: string,
     type: string,
@@ -171,6 +220,11 @@ export class TransactionService {
     await this.cashService.updateCashRegister(subOfficeId, cashChange);
   }
 
+  /**
+   * Obtiene todas las transacciones
+   *
+   * @returns Un array de transacciones
+   */
   async findAll(): Promise<Transaction[]> {
     const transactions = await this.transactionModel.find().exec();
     return Promise.all(
@@ -180,6 +234,12 @@ export class TransactionService {
     );
   }
 
+  /**
+   * Obtiene una transacción por su ID
+   *
+   * @param id Identificador de la transacción
+   * @returns La transacción encontrada o null si no existe
+   */
   async findOne(id: string): Promise<Transaction> {
     const transaction = await this.transactionModel.findById(id).exec();
     if (!transaction) {
@@ -188,6 +248,13 @@ export class TransactionService {
     return this.populateTransactionData(transaction);
   }
 
+  /**
+   * Actualiza una transacción
+   *
+   * @param id Identificador de la transacción
+   * @param transactionData Datos de la transacción a actualizar
+   * @returns La transacción actualizada
+   */
   async update(
     id: string,
     transactionData: Partial<Transaction>,
@@ -197,12 +264,15 @@ export class TransactionService {
       .exec();
   }
 
+  /**
+   * Elimina una transacción
+   *
+   * @param id Identificador de la transacción
+   * @returns La transacción eliminada
+   */
   async delete(id: string): Promise<Transaction> {
     return this.transactionModel.findByIdAndDelete(id).exec();
   }
-
-  //métodos para manejar los datos de usuario, sucursal y moneda; cuando no hay datos disponibles, se muestra el nombre '${dato} no disponible'
-
   private async getUserData(userId: string) {
     try {
       const user = await this.userService.findOneById(userId);
@@ -230,6 +300,12 @@ export class TransactionService {
     }
   }
 
+  /**
+   * Pobla los datos de usuario, sucursal y moneda en una transacción
+   *
+   * @param transaction La transacción a poblar
+   * @returns La transacción con los datos poblados
+   */
   private async populateTransactionData(
     transaction: TransactionDocument,
   ): Promise<Transaction> {
@@ -240,7 +316,6 @@ export class TransactionService {
         this.getCurrencyData(transaction.sourceCurrency.toString()),
         this.getCurrencyData(transaction.targetCurrency.toString()),
       ]);
-
     return {
       ...transaction.toObject(),
       userName: userData.name,

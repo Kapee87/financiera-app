@@ -1,4 +1,18 @@
 /* eslint-disable */
+/**
+ * Esquema de la colección de registros de caja de la empresa
+ *
+ * Contiene la información de los registros de caja de la empresa
+ *
+ * @property {ObjectId} _id - Identificador único del registro de caja
+ * @property {Date} date - Fecha en la que se realizó el registro de caja
+ * @property {number} total_opening_balance - Monto total de la apertura de la caja
+ * @property {number} total_closing_balance - Monto total del cierre de la caja
+ * @property {number} total_income - Monto total de los ingresos
+ * @property {number} total_expenses - Monto total de los gastos
+ * @property {number} difference - Diferencia entre el monto total de la apertura y el monto total del cierre
+ * @property {ObjectId[]} subOfficeCashRegisters - Arreglo de identificadores de los registros de caja de las suboficinas
+ */
 import { Prop, SchemaFactory } from '@nestjs/mongoose';
 import { SchemaTypes } from 'mongoose';
 

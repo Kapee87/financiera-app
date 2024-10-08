@@ -1,4 +1,11 @@
 /* eslint-disable */
+/**
+ * Servicio de autenticación, para el registro y login de usuarios,
+ * así como para la activación de la cuenta y el restablecimiento de la
+ * contraseña.
+ *
+ * @since 1.0.0
+ */
 import {
   ConflictException,
   Injectable,
@@ -15,10 +22,23 @@ import { Roles } from 'src/utils/enums/roles.enum';
 import { MailerService } from 'src/utils/mailer/mailer.service';
 import { TemplatesService, TemplateVars } from 'src/utils/template.service';
 
+/**
+ * Clase que implementa el servicio de autenticación
+ */
 @Injectable()
 export class AuthService {
   private apiKeyEmail;
   private activationUrl;
+  /**
+   * Constructor de la clase
+   *
+   * @param usersService - Servicio de usuarios
+   * @param jwtService - Servicio de autenticación por tokens
+   * @param httpService - Servicio de peticiones HTTP
+   * @param configService - Servicio de configuración
+   * @param mailerService - Servicio de envío de correos electrónicos
+   * @param templatesService - Servicio de plantillas de correos electrónicos
+   */
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
@@ -31,6 +51,14 @@ export class AuthService {
     this.activationUrl = `${this.configService.get<string>('FRONTEND_URL')}`;
   }
 
+  /**
+   * Valida las credenciales de un usuario
+   *
+   * @param email - Correo electrónico del usuario
+   * @param password - Contraseña del usuario
+   * @returns - Un objeto con los datos del usuario si las credenciales son
+   *   válidas, de lo contrario lanza una excepción
+   */
   async validateUserCredentials(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
 
@@ -49,6 +77,15 @@ export class AuthService {
     }
   }
 
+  /**
+   * Realiza el login de un usuario
+   *
+   * @param email - Correo electrónico del usuario
+   * @param password - Contraseña del usuario
+   * @returns - Un objeto con el token de autenticación si el usuario
+   *   existe y las credenciales son válidas, de lo contrario lanza una
+   *   excepción
+   */
   async login(email: string, password: string) {
     const user = await this.validateUserCredentials(email, password);
 
@@ -68,6 +105,13 @@ export class AuthService {
     };
   }
 
+  /**
+   * Registra un nuevo usuario
+   *
+   * @param registerUserDto - Un objeto con los datos del usuario a registrar
+   * @returns - Un objeto con un mensaje de confirmación si el usuario
+   *   se registró correctamente, de lo contrario lanza una excepción
+   */
   async register(registerUserDto: userDto) {
     const user = await this.usersService.findByEmail(registerUserDto.email);
 
@@ -130,6 +174,15 @@ export class AuthService {
       throw new ConflictException('Error al registrar usuario' + error.message);
     }
   }
+
+  /**
+   * Envía un correo electrónico para restablecer la contraseña de un usuario
+   *
+   * @param email - Correo electrónico del usuario
+   * @param link - Enlace de restablecimiento de contraseña
+   * @returns - Un objeto vacío si el correo electrónico se envió
+   *   correctamente, de lo contrario lanza una excepción
+   */
   async sendResetPasswordEmail(email: string, link: string) {
     try {
       const vars: TemplateVars = {
@@ -155,6 +208,12 @@ export class AuthService {
     }
   }
 
+  /**
+   * Verifica si un correo electrónico existe
+   *
+   * @param email - Correo electrónico a verificar
+   * @returns - Un booleano que indica si el correo electrónico existe o no
+   */
   async checkIfMailExists(email) {
     try {
       const response = await this.httpService
@@ -182,6 +241,13 @@ export class AuthService {
     }
   }
 
+  /**
+   * Crea un super administrador
+   *
+   * @param registerUserDto - Un objeto con los datos del super administrador
+   * @returns - Un objeto con los datos del super administrador si se
+   *   creó correctamente, de lo contrario lanza una excepción
+   */
   async createSuperAdmin(registerUserDto: userDto) {
     const superAdmin = await this.usersService.findByEmail(
       registerUserDto.email,
