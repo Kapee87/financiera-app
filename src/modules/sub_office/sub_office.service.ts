@@ -21,6 +21,7 @@ import { SubOffice } from 'src/schemas/sub_office.schema';
 
 @Injectable()
 export class SubOfficeService {
+  
   constructor(
     @InjectModel(SubOffice.name) private sub_officeModel: Model<SubOffice>,
   ) {}
@@ -63,7 +64,7 @@ export class SubOfficeService {
       .populate({
         path: 'currencies.currency',
         model: 'Currency',
-        select: 'name _id code globalStock',
+        select: 'name _id code',
       })
       .populate('users')
       .exec();

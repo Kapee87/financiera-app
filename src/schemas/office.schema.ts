@@ -14,8 +14,6 @@
  *
  * @property {ObjectId[]} sub_offices - Sub oficinas que pertenecen a esta oficina
  *
- * @property {number} globalStock - Cantidad disponible de la moneda total(en dólares)
- *
  * La cantidad disponible de la moneda total es la suma de la cantidad
  * disponible en todas las sub oficinas.
  */
@@ -46,15 +44,6 @@ export class Office {
    */
   @Prop({ type: [SchemaTypes.ObjectId], ref: 'SubOffice', required: true })
   sub_offices: string[];
-
-  /**
-   * Cantidad disponible de la moneda total(en dólares)
-   */
-  @Prop({
-    required: true,
-    default: 0,
-  })
-  globalStock: number;
 }
 
 export const OfficeSchema = SchemaFactory.createForClass(Office);

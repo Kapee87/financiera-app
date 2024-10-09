@@ -63,6 +63,19 @@ export class OfficeController {
   }
 
   /**
+   * Vacía el array de sub_oficinas de una oficina
+   *
+   * Recibe el id de la oficina a vaciar
+   *
+   * @param id Identificador de la oficina a vaciar
+   * @returns La oficina con el array de sub_oficinas vacío
+   */
+  @Put(':id/clear-sub-offices')
+  clearSubOffices(@Param('id') id: string) {
+    return this.officeService.clearSubOffices(id);
+  }
+
+  /**
    * Actualiza una oficina
    *
    * Recibe el id de la oficina a actualizar y los datos a actualizar
@@ -87,5 +100,17 @@ export class OfficeController {
   @Delete(':id')
   delete(@Param('id') id: string) {
     return this.officeService.delete(id);
+  }
+
+  /**
+   * Obtiene el stock total de cada moneda en todas las sucursales de esta oficina
+   *
+   * @param id Identificador de la oficina
+   * @returns Un objeto con los stocks de cada moneda en todas las sucursales
+   */
+  @Get(':id/stocks')
+  getStocks(@Param('id') id: string) {
+    console.log('paso por controller');
+    return this.officeService.getStocks(id);
   }
 }

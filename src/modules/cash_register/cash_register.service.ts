@@ -74,11 +74,6 @@ export class CashRegisterService {
       amount,
       'set',
     );
-    await this.currencyService.updateGlobalStock(
-      arsCurrency._id.toString(),
-      amount,
-      'set',
-    );
   }
 
   async closeDay(

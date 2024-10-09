@@ -179,18 +179,6 @@ export class TransactionService {
         'increase',
       );
     }
-
-    // Actualizar stocks globales
-    await this.currencyService.updateGlobalStock(
-      sourceCurrencyId,
-      sourceAmount,
-      type === 'buy' ? 'increase' : 'decrease',
-    );
-    await this.currencyService.updateGlobalStock(
-      targetCurrencyId,
-      targetAmount,
-      type === 'sell' ? 'increase' : 'decrease',
-    );
   }
 
   /**

@@ -111,47 +111,6 @@ export class CurrencyService {
   }
 
   /**
-   * Actualiza el stock global de una moneda
-   *
-   * @param {string} currencyId ID de la moneda
-   * @param {number} amount Cantidad a agregar o restar
-   * @param {'increase' | 'decrease' | 'set'} operation Operación a realizar
-   * @returns {Promise<void>}
-   */
-  async updateGlobalStock(
-    currencyId: string,
-    amount: number,
-    operation: 'increase' | 'decrease' | 'set',
-  ): Promise<void> {
-    const currency = await this.currencyModel.findById(currencyId);
-
-    if (!currency) {
-      throw new NotFoundException(
-        `No se encontró la moneda con ID ${currencyId}`,
-      );
-    }
-
-    switch (operation) {
-      case 'increase':
-        currency.globalStock += amount;
-        break;
-      case 'decrease':
-        if (currency.globalStock < amount) {
-          throw new Error(
-            'Stock global insuficiente para realizar esta operación',
-          );
-        }
-        currency.globalStock -= amount;
-        break;
-      case 'set':
-        currency.globalStock = amount;
-        break;
-    }
-
-    await currency.save();
-  }
-
-  /**
    * Busca una moneda por su código
    *
    * @param {string} code Código de la moneda
