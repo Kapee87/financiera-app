@@ -51,6 +51,12 @@ export class User {
   isActive: boolean;
 
   /**
+   * Número de teléfono del usuario
+   */
+  @Prop({ type: String })
+  phone?: string;
+
+  /**
    * Rol del usuario (administrador o usuario normal)
    */
   @Prop({ type: String, enum: Roles, required: true, default: Roles.User })
