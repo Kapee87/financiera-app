@@ -45,6 +45,12 @@ export class User {
   email: string;
 
   /**
+   * Número de teléfono del usuario
+   */
+  @Prop({ type: String, default: '' })
+  phone?: string;
+
+  /**
    * Estado del usuario (activo o inactivo)
    */
   @Prop({ required: true, default: true })

@@ -12,6 +12,7 @@ import {
 import { CashRegisterService } from './cash_register.service';
 import { CurrencyModule } from '../currency/currency.module';
 import { SubOfficeModule } from '../sub_office/sub_office.module';
+import { TransactionModule } from '../transaction/transaction.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { SubOfficeModule } from '../sub_office/sub_office.module';
     ]),
     forwardRef(() => CurrencyModule),
     forwardRef(() => SubOfficeModule),
+    forwardRef(() => TransactionModule),
   ],
   providers: [CashRegisterService],
   controllers: [CashRegisterController],

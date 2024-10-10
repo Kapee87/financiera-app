@@ -26,11 +26,8 @@ export class CashRegisterController {
   }
 
   @Put('close/:id')
-  closeDay(
-    @Param('id') id: string,
-    @Body() updateCashRegisterDto: UpdateCashRegisterDto,
-  ): Promise<CashRegister> {
-    return this.cashRegisterService.closeDay(id, updateCashRegisterDto);
+  closeDay(@Param('id') id: string): Promise<CashRegister> {
+    return this.cashRegisterService.closeDay(id);
   }
 
   @Get(':date')

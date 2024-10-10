@@ -10,7 +10,7 @@
  */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import {
   Transaction,
   TransactionDocument,
@@ -311,5 +311,22 @@ export class TransactionService {
       sourceCurrencyCode: sourceCurrencyData.code,
       targetCurrencyCode: targetCurrencyData.code,
     };
+  }
+  async getTransactionsForDay(
+    subOfficeId: Types.ObjectId,
+    date: Date,
+  ): Promise<Transaction[]> {
+    const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+
+    return this.transactionModel
+      .find({
+        subOffice: subOfficeId,
+        createdAt: {
+          $gte: startOfDay,
+          $lte: endOfDay,
+        },
+      })
+      .exec();
   }
 }

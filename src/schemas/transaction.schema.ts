@@ -17,6 +17,7 @@
  * @property {number} exchangeRate - Tasa de cambio de la transacción
  * @property {number} [commission] - Comisión de la transacción (opcional)
  * @property {string} type - Tipo de transacción (buy, sell o exchange)
+ * @property {Date} createdAt - Fecha de creación de la transacción
  */
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
@@ -105,6 +106,12 @@ export class Transaction {
    */
   @Prop({ enum: ['buy', 'sell', 'exchange'], required: true })
   type: string;
+
+  /**
+   * Fecha de creación de la transacción
+   */
+  @Prop({ type: Date, default: Date.now })
+  createdAt: Date;
 }
 
 // Usamos SchemaFactory para crear el esquema

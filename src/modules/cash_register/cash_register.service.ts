@@ -1,5 +1,10 @@
 /* eslint-disable */
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  forwardRef,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import {
@@ -7,9 +12,9 @@ import {
   CashRegisterDocument,
 } from 'src/schemas/cash_registers.schema';
 import { CreateCashRegisterDto } from 'src/dtos/create-cash-register.dto';
-import { UpdateCashRegisterDto } from 'src/dtos/update-cash-register.dto';
 import { CurrencyService } from '../currency/currency.service';
 import { SubOfficeService } from '../sub_office/sub_office.service';
+import { TransactionService } from '../transaction/transaction.service';
 
 @Injectable()
 export class CashRegisterService {
@@ -18,6 +23,8 @@ export class CashRegisterService {
     private cashRegisterModel: Model<CashRegisterDocument>,
     private currencyService: CurrencyService,
     private subOfficeService: SubOfficeService,
+    @Inject(forwardRef(() => TransactionService))
+    private transactionService: TransactionService,
   ) {}
 
   private truncateDate(date: Date): Date {
@@ -76,20 +83,45 @@ export class CashRegisterService {
     );
   }
 
-  async closeDay(
-    id: string,
-    updateCashRegisterDto: UpdateCashRegisterDto,
-  ): Promise<CashRegister> {
+  async closeDay(id: string): Promise<CashRegister> {
     const cashRegister = await this.cashRegisterModel.findById(id);
     if (!cashRegister) {
       throw new NotFoundException(`La caja diaria con ID ${id} no existe`);
     }
 
-    cashRegister.closing_balance = updateCashRegisterDto.closing_balance;
-    cashRegister.total_income = updateCashRegisterDto.total_income;
-    cashRegister.total_expenses = updateCashRegisterDto.total_expenses;
-    cashRegister.difference =
-      cashRegister.closing_balance - cashRegister.opening_balance;
+    // Obtener todas las transacciones del día para esta caja
+    const transactions = await this.transactionService.getTransactionsForDay(
+      cashRegister.sub_office,
+      cashRegister.date,
+    );
+
+    // Calcular total_income y total_expenses
+    let total_income = 0;
+    let total_expenses = 0;
+    for (const transaction of transactions) {
+      if (transaction.type === 'buy') {
+        total_expenses += transaction.targetAmount;
+      } else if (transaction.type === 'sell') {
+        total_income += transaction.sourceAmount;
+      }
+      // Para 'exchange', no afecta el balance de la caja en ARS
+    }
+
+    // Calcular closing_balance
+    const closing_balance =
+      cashRegister.opening_balance + total_income - total_expenses;
+
+    // Actualizar la caja
+    cashRegister.closing_balance = closing_balance;
+    cashRegister.total_income = total_income;
+    cashRegister.total_expenses = total_expenses;
+    cashRegister.difference = closing_balance - cashRegister.opening_balance;
+
+    // Actualizar el stock de ARS en la sub-oficina
+    await this.updateARSStock(
+      cashRegister.sub_office.toString(),
+      closing_balance,
+    );
 
     return cashRegister.save();
   }
