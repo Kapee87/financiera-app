@@ -31,6 +31,8 @@ import { IsActiveGuard } from 'src/guards/is-active-guard';
 import { AdminGuard } from 'src/guards/admin-guard';
 import { Roles } from 'src/utils/enums/roles.enum';
 import { JwtService } from '@nestjs/jwt';
+import { Types } from 'mongoose';
+import { SubOfficeService } from '../sub_office/sub_office.service';
 
 @Controller('users')
 @UseGuards(IsActiveGuard, JwtAuthGuard)
@@ -46,6 +48,7 @@ export class UsersController {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private subOfficeService: SubOfficeService,
   ) {}
 
   /**
@@ -88,19 +91,41 @@ export class UsersController {
    */
   @Post('/')
   // @UseGuards(AdminGuard)
-  createUser(@Body() body: userDto) {
-    if (body.role === Roles.SuperAdmin) {
+  async createUser(@Body() body: { user: userDto; subOfficeId: string }) {
+    if (body.user.role === Roles.SuperAdmin) {
       throw new HttpException('No se puede crear un manager o superAdmin', 400);
-    } else if (body.role === Roles.Admin) {
+    } else if (body.user.role === Roles.Admin) {
       throw new HttpException('No se puede crear un adminastrador', 400);
     }
 
-    if (!Object.values(Roles).includes(body.role)) {
+    if (!Object.values(Roles).includes(body.user.role)) {
       throw new ConflictException('Rol no válido');
     }
 
-    const newUser = this.usersService.createUser({ ...body, isActive: true });
-    return newUser;
+    try {
+      const newUser = await this.usersService.createUser({
+        ...body.user,
+        isActive: true,
+      });
+      try {
+        const subOffice = await this.subOfficeService.findOne(body.subOfficeId);
+
+        if (!subOffice) {
+          throw new NotFoundException('No se encontro la sucursal');
+        }
+        const userArray = [...subOffice.users, newUser._id];
+        const subOfficeUpdated = await this.subOfficeService.update(
+          body.subOfficeId,
+          { users: userArray },
+        );
+      } catch (error) {
+        throw new ConflictException(
+          'No se pudo actualizar la sucursal ' + error,
+        );
+      }
+    } catch (error) {
+      throw new ConflictException('No se pudo crear el usuario: ' + error);
+    }
   }
 
   /**

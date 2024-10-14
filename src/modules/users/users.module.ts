@@ -4,11 +4,11 @@
  *
  * Contiene la lógica para manejar a los usuarios
  *
- * @author 
+ * @author
  * @version 1.0.0
  * @since 2020-07-20
  */
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 /**
  * Schema de usuarios
@@ -41,6 +41,7 @@ import { PassportModule } from '@nestjs/passport';
  * Permite la autenticación de los usuarios con tokens JWT
  */
 import { JwtModule } from '@nestjs/jwt';
+import { SubOfficeModule } from '../sub_office/sub_office.module';
 
 @Module({
   /**
@@ -52,6 +53,7 @@ import { JwtModule } from '@nestjs/jwt';
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     PassportModule,
     JwtModule,
+    forwardRef(() => SubOfficeModule),
   ],
   /**
    * Controladores del módulo
