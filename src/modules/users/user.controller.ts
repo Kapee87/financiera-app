@@ -215,8 +215,22 @@ export class UsersController {
    */
   @Delete('delete-user/:id')
   @UseGuards(AdminGuard)
-  deleteUser(@Param('id') id: string) {
-    return this.usersService.deleteUser(id);
+  async deleteUser(@Param('id') id: string) {
+    try {
+      const userId = new Types.ObjectId(id);
+      this.usersService.deleteUser(id);
+      const subOffices = await this.subOfficeService.findAll();
+      subOffices.forEach((subOffice) => {
+        const index = subOffice.users.indexOf(userId);
+        if (index > -1) {
+          subOffice.users.splice(index, 1);
+          this.subOfficeService.update(subOffice._id, subOffice);
+        }
+      });
+      return 'El usuario ha sido eliminado y la/s sucursal/es actualizada';
+    } catch (error) {
+      throw new ConflictException('No se pudo eliminar el usuario: ' + error);
+    }
   }
 
   /**
