@@ -21,6 +21,7 @@ import { TransactionService } from './transaction.service';
 
 import { Transaction } from 'src/schemas/transaction.schema';
 import { CreateTransactionDto } from 'src/dtos/create-transaction.dto';
+import { Types } from 'mongoose';
 
 /**
  * Controlador para la gestión de transacciones
@@ -70,7 +71,7 @@ export class TransactionController {
    */
   @Put(':id')
   update(
-    @Param('id') id: string,
+    @Param('id') id: Types.ObjectId,
     @Body() transactionData: Partial<Transaction>,
   ) {
     return this.transactionService.update(id, transactionData);

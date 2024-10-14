@@ -244,7 +244,7 @@ export class TransactionService {
    * @returns La transacción actualizada
    */
   async update(
-    id: string,
+    id: Types.ObjectId,
     transactionData: Partial<Transaction>,
   ): Promise<Transaction> {
     return this.transactionModel
