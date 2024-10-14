@@ -33,7 +33,7 @@ import { Roles } from 'src/utils/enums/roles.enum';
 import { JwtService } from '@nestjs/jwt';
 
 @Controller('users')
-// @UseGuards(IsActiveGuard, JwtAuthGuard)
+@UseGuards(IsActiveGuard, JwtAuthGuard)
 export class UsersController {
   /**
    * Constructor del controlador de usuarios
@@ -137,7 +137,7 @@ export class UsersController {
    * @returns - El usuario actualizado
    */
   @Put('update-user/:id')
-  @UseGuards(AdminGuard, SuperAdminGuard)
+  @UseGuards(AdminGuard)
   updateUser(@Param('id') id: string, @Body() user: userDto) {
     if (user.role !== Roles.User) {
       throw new ConflictException('Sin permiso para modificar este usuario');
@@ -154,7 +154,7 @@ export class UsersController {
    * @returns - El usuario actualizado
    */
   @Put('update-admin/:id')
-  @UseGuards(AdminGuard, SuperAdminGuard)
+  @UseGuards(AdminGuard)
   async updateAdmin(
     @Param('id') id: string,
     @Body() user: userDto,
