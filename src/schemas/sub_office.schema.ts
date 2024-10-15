@@ -19,6 +19,9 @@ export type SubOfficeDocument = SubOffice & Document;
 
 @Schema()
 export class SubOffice {
+  @Prop()
+  _id: Types.ObjectId;
+
   @Prop({ required: true })
   name: string;
 
