@@ -13,6 +13,7 @@ import { CreateCashRegisterDto } from '../../dtos/create-cash-register.dto';
 import { UpdateCashRegisterDto } from '../../dtos/update-cash-register.dto';
 import { CashRegisterService } from './cash_register.service';
 import { CashRegister } from 'src/schemas/cash_registers.schema';
+import { Types } from 'mongoose';
 
 @Controller('cash-register')
 export class CashRegisterController {
@@ -26,7 +27,7 @@ export class CashRegisterController {
   }
 
   @Put('close/:id')
-  closeDay(@Param('id') id: string): Promise<CashRegister> {
+  closeDay(@Param('id') id: string | Types.ObjectId): Promise<CashRegister> {
     return this.cashRegisterService.closeDay(id);
   }
 

@@ -20,6 +20,7 @@ import { SubOfficeService } from './sub_office.service';
 import { Error, Types } from 'mongoose';
 import { createSubOfficeDto } from 'src/dtos/create-subOffice.dto';
 import { updateSubOfficeDto } from 'src/dtos/update-subOffice.dto';
+import { SubOffice } from 'src/schemas/sub_office.schema';
 
 @Controller('sub_offices')
 export class SubOfficeController {
@@ -37,7 +38,9 @@ export class SubOfficeController {
    * @returns {Promise<SubOffice>} - Promesa que se resuelve con la suboficina creada
    */
   @Post()
-  create(@Body() subOfficeData: Partial<createSubOfficeDto>) {
+  create(
+    @Body() subOfficeData: Partial<createSubOfficeDto>,
+  ): Promise<SubOffice> {
     try {
       return this.subOfficeService.create(subOfficeData);
     } catch (error) {
@@ -51,7 +54,7 @@ export class SubOfficeController {
    * @returns {Promise<SubOffice[]>} - Promesa que se resuelve con todas las suboficinas
    */
   @Get()
-  findAll() {
+  findAll(): Promise<SubOffice[]> {
     return this.subOfficeService.findAll();
   }
 
@@ -62,7 +65,7 @@ export class SubOfficeController {
    * @returns {Promise<SubOffice>} - Promesa que se resuelve con la suboficina obtenida
    */
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string | Types.ObjectId): Promise<SubOffice> {
     return this.subOfficeService.findOne(id);
   }
 
@@ -77,8 +80,35 @@ export class SubOfficeController {
   update(
     @Param('id') id: string | Types.ObjectId,
     @Body() officeData: Partial<updateSubOfficeDto>,
-  ) {
+  ): Promise<SubOffice> {
     return this.subOfficeService.update(id, officeData);
+  }
+
+  /**
+   * Actualiza el stock de una moneda en una suboficina
+   *
+   * @param {string} subOfficeId - ID de la suboficina a actualizar
+   * @param {string} currencyId - ID de la moneda a actualizar
+   * @param {number} amount - Cantidad a agregar o restar al stock
+   * @param {string} operation - 'increase' o 'decrease'
+   * @returns {Promise<void>} No devuelve nada
+   */
+  @Put(':subOfficeId/currencies/:currencyId')
+  async updateCurrencyStock(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Param('currencyId') currencyId: string | Types.ObjectId,
+    @Body()
+    {
+      amount,
+      operation,
+    }: { amount: number; operation: 'increase' | 'decrease' },
+  ): Promise<void> {
+    return this.subOfficeService.updateCurrencyStock(
+      subOfficeId,
+      currencyId,
+      amount,
+      operation,
+    );
   }
 
   /**
@@ -88,7 +118,7 @@ export class SubOfficeController {
    * @returns {Promise<string>} - Promesa que se resuelve con el ID de la suboficina eliminada
    */
   @Delete(':id')
-  delete(@Param('id') id: string) {
+  delete(@Param('id') id: string | Types.ObjectId): Promise<string> {
     return this.subOfficeService.delete(id);
   }
 }

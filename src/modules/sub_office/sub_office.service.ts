@@ -21,7 +21,6 @@ import { SubOffice } from 'src/schemas/sub_office.schema';
 
 @Injectable()
 export class SubOfficeService {
-  
   constructor(
     @InjectModel(SubOffice.name) private sub_officeModel: Model<SubOffice>,
   ) {}
@@ -75,11 +74,13 @@ export class SubOfficeService {
    *
    * Si la suboficina no existe, lanza un error de no encontrado
    *
-   * @param {string} id - ID de la suboficina a obtener
+   * @param {string | Types.ObjectId} id - ID de la suboficina a obtener
    * @returns {Promise<SubOffice>} La suboficina
    */
-  async findOne(id: string): Promise<SubOffice> {
-    const subOffice = await this.sub_officeModel.findById(id).exec();
+  async findOne(id: string | Types.ObjectId): Promise<SubOffice> {
+    const subOfficeId =
+      id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+    const subOffice = await this.sub_officeModel.findById(subOfficeId).exec();
     if (!subOffice) {
       throw new NotFoundException(`No se encontró la sucursal con ID ${id}`);
     }
@@ -91,7 +92,7 @@ export class SubOfficeService {
    *
    * Si la suboficina no existe, lanza un error de no encontrado
    *
-   * @param {string} id - ID de la suboficina a actualizar
+   * @param {string | Types.ObjectId} id - ID de la suboficina a actualizar
    * @param {Partial<updateSubOfficeDto>} sub_officeData - Datos de la suboficina a actualizar
    * @returns {Promise<SubOffice>} La suboficina actualizada
    */
@@ -102,7 +103,7 @@ export class SubOfficeService {
     let objectId: Types.ObjectId;
 
     try {
-      objectId = new Types.ObjectId(id);
+      objectId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
     } catch (error) {
       throw new BadRequestException(`ID de sucursal inválido: ${id}`);
     }
@@ -202,12 +203,18 @@ export class SubOfficeService {
    * @returns {Promise<void>} No devuelve nada
    */
   async updateCurrencyStock(
-    subOfficeId: string,
-    currencyId: string,
+    subOfficeId: string | Types.ObjectId,
+    currencyId: string | Types.ObjectId,
     amount: number,
     operation: 'increase' | 'decrease' | 'set',
   ): Promise<void> {
-    const subOffice = await this.sub_officeModel.findById(subOfficeId);
+    const subOfficeObjectId =
+      subOfficeId instanceof Types.ObjectId
+        ? subOfficeId
+        : new Types.ObjectId(subOfficeId);
+    const subOffice = await this.sub_officeModel.findById(subOfficeObjectId);
+
+    console.log(subOffice);
 
     if (!subOffice) {
       throw new NotFoundException(
@@ -222,7 +229,10 @@ export class SubOfficeService {
     if (!currencyInSubOffice) {
       // Si la moneda no existe en la sucursal, la agregamos
       subOffice.currencies.push({
-        currency: new Types.ObjectId(currencyId),
+        currency:
+          currencyId instanceof Types.ObjectId
+            ? currencyId
+            : new Types.ObjectId(currencyId),
         stock: 0,
       });
     }
@@ -238,7 +248,7 @@ export class SubOfficeService {
       case 'decrease':
         if (subOffice.currencies[index].stock < amount) {
           throw new ConflictException(
-            'Stock insuficiente para realizar esta operación',
+            `Stock insuficiente para realizar esta operación currency stock: ${subOffice.currencies[index].stock}  amount: ${amount} `,
           );
         }
         subOffice.currencies[index].stock -= amount;
@@ -259,8 +269,12 @@ export class SubOfficeService {
    * @param {string} id - ID de la suboficina a eliminar
    * @returns {Promise<string>} Un mensaje de confirmación
    */
-  async delete(id: string): Promise<string> {
-    const deletedSub_office = this.sub_officeModel.findByIdAndDelete(id).exec();
+  async delete(id: string | Types.ObjectId): Promise<string> {
+    const sub_officeId =
+      id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+    const deletedSub_office = this.sub_officeModel
+      .findByIdAndDelete(sub_officeId)
+      .exec();
 
     if (!deletedSub_office) {
       throw new NotFoundException(`No se encontró la sucursal con ID ${id}`);

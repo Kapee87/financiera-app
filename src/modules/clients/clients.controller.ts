@@ -11,6 +11,7 @@ import {
 import { CreateClientDto } from 'src/dtos/create-client.dto';
 import { UpdateClientDto } from 'src/dtos/update-client.dto';
 import { ClientsService } from './clients.service';
+import { Types } from 'mongoose';
 
 @Controller('clients')
 export class ClientsController {
@@ -27,17 +28,20 @@ export class ClientsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string | Types.ObjectId) {
     return this.clientsService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateClientsDto: UpdateClientDto) {
+  update(
+    @Param('id') id: string | Types.ObjectId,
+    @Body() updateClientsDto: UpdateClientDto,
+  ) {
     return this.clientsService.update(id, updateClientsDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id') id: string | Types.ObjectId) {
     return this.clientsService.remove(id);
   }
 }

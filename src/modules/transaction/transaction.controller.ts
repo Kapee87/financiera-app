@@ -59,7 +59,7 @@ export class TransactionController {
    * @returns La transacción obtenida
    */
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string | Types.ObjectId) {
     return this.transactionService.findOne(id);
   }
 
@@ -71,7 +71,7 @@ export class TransactionController {
    */
   @Put(':id')
   update(
-    @Param('id') id: Types.ObjectId,
+    @Param('id') id: string | Types.ObjectId,
     @Body() transactionData: Partial<Transaction>,
   ) {
     return this.transactionService.update(id, transactionData);
@@ -83,7 +83,7 @@ export class TransactionController {
    * @returns La transacción eliminada
    */
   @Delete(':id')
-  delete(@Param('id') id: string) {
+  delete(@Param('id') id: string | Types.ObjectId) {
     return this.transactionService.delete(id);
   }
 }

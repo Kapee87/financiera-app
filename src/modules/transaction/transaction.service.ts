@@ -82,11 +82,11 @@ export class TransactionService {
     let targetAmount: number;
     if (type === 'buy') {
       sourceAmount = amount;
-      targetAmount = amount * exchangeRate;
+      targetAmount = Math.trunc(amount * exchangeRate * 100) / 100;
     } else {
       // sell or exchange
       targetAmount = amount;
-      sourceAmount = amount / exchangeRate;
+      sourceAmount = Math.trunc((amount / exchangeRate) * 100) / 100;
     }
 
     // Verificar y actualizar stocks
@@ -139,6 +139,11 @@ export class TransactionService {
     targetAmount: number,
     type: string,
   ): Promise<void> {
+    console.log(
+      'subOfficeId, sourceCurrencyId, targetCurrencyId, sourceAmount, targetAmount, type',
+    );
+    console.log(subOfficeId, sourceCurrencyId, targetCurrencyId);
+
     if (type === 'buy') {
       await this.subOfficeService.updateCurrencyStock(
         subOfficeId,
@@ -228,8 +233,12 @@ export class TransactionService {
    * @param id Identificador de la transacción
    * @returns La transacción encontrada o null si no existe
    */
-  async findOne(id: string): Promise<Transaction> {
-    const transaction = await this.transactionModel.findById(id).exec();
+  async findOne(id: string | Types.ObjectId): Promise<Transaction> {
+    const transactionId =
+      id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+    const transaction = await this.transactionModel
+      .findById(transactionId)
+      .exec();
     if (!transaction) {
       throw new NotFoundException(`Transaction with ID ${id} not found`);
     }
@@ -244,11 +253,13 @@ export class TransactionService {
    * @returns La transacción actualizada
    */
   async update(
-    id: Types.ObjectId,
+    id: string | Types.ObjectId,
     transactionData: Partial<Transaction>,
   ): Promise<Transaction> {
+    const transactionId =
+      id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
     return this.transactionModel
-      .findByIdAndUpdate(id, transactionData, { new: true })
+      .findByIdAndUpdate(transactionId, transactionData, { new: true })
       .exec();
   }
 
@@ -258,30 +269,42 @@ export class TransactionService {
    * @param id Identificador de la transacción
    * @returns La transacción eliminada
    */
-  async delete(id: string): Promise<Transaction> {
-    return this.transactionModel.findByIdAndDelete(id).exec();
+  async delete(id: string | Types.ObjectId): Promise<Transaction> {
+    const transactionId =
+      id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+    return this.transactionModel.findByIdAndDelete(transactionId).exec();
   }
-  private async getUserData(userId: string) {
+  private async getUserData(userId: string | Types.ObjectId) {
+    const newUserId =
+      userId instanceof Types.ObjectId ? userId : new Types.ObjectId();
     try {
-      const user = await this.userService.findOneById(userId);
+      const user = await this.userService.findOneById(newUserId);
       return { name: user.username };
     } catch (error) {
       return { name: 'Usuario no disponible' };
     }
   }
 
-  private async getSubOfficeData(subOfficeId: string) {
+  private async getSubOfficeData(subOfficeId: string | Types.ObjectId) {
+    const id =
+      subOfficeId instanceof Types.ObjectId
+        ? subOfficeId
+        : new Types.ObjectId(subOfficeId);
     try {
-      const subOffice = await this.subOfficeService.findOne(subOfficeId);
+      const subOffice = await this.subOfficeService.findOne(id);
       return { name: subOffice.name };
     } catch (error) {
       return { name: 'Sucursal no disponible' };
     }
   }
 
-  private async getCurrencyData(currencyId: string) {
+  private async getCurrencyData(currencyId: string | Types.ObjectId) {
+    const id =
+      currencyId instanceof Types.ObjectId
+        ? currencyId
+        : new Types.ObjectId(currencyId);
     try {
-      const currency = await this.currencyService.findOne(currencyId);
+      const currency = await this.currencyService.findOne(id);
       return { code: currency.code };
     } catch (error) {
       return { code: 'Moneda no disponible' };
@@ -313,15 +336,19 @@ export class TransactionService {
     };
   }
   async getTransactionsForDay(
-    subOfficeId: Types.ObjectId,
+    subOfficeId: string | Types.ObjectId,
     date: Date,
   ): Promise<Transaction[]> {
+    const id =
+      subOfficeId instanceof Types.ObjectId
+        ? subOfficeId
+        : new Types.ObjectId(subOfficeId);
     const startOfDay = new Date(date.setHours(0, 0, 0, 0));
     const endOfDay = new Date(date.setHours(23, 59, 59, 999));
 
     return this.transactionModel
       .find({
-        subOffice: subOfficeId,
+        subOffice: id,
         createdAt: {
           $gte: startOfDay,
           $lte: endOfDay,

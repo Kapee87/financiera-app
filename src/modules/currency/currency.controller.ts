@@ -19,6 +19,7 @@ import {
 } from '@nestjs/common';
 import { CurrencyService } from './currency.service';
 import { Currency } from 'src/schemas/currency.schema';
+import { Types } from 'mongoose';
 
 @Controller('currencies')
 export class CurrencyController {
@@ -59,7 +60,7 @@ export class CurrencyController {
    * @returns {Promise<Currency>} - Moneda obtenida
    */
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string | Types.ObjectId) {
     return this.currencyService.findOne(id);
   }
 
@@ -72,7 +73,10 @@ export class CurrencyController {
    * @returns {Promise<Currency>} - Moneda actualizada
    */
   @Put(':id')
-  update(@Param('id') id: string, @Body() currencyData: Partial<Currency>) {
+  update(
+    @Param('id') id: string | Types.ObjectId,
+    @Body() currencyData: Partial<Currency>,
+  ) {
     return this.currencyService.update(id, currencyData);
   }
 
@@ -84,7 +88,7 @@ export class CurrencyController {
    * @returns {Promise<Currency>} - Moneda eliminada
    */
   @Delete(':id')
-  delete(@Param('id') id: string) {
+  delete(@Param('id') id: string | Types.ObjectId) {
     return this.currencyService.delete(id);
   }
 }

@@ -32,7 +32,6 @@ import { AdminGuard } from 'src/guards/admin-guard';
 import { Roles } from 'src/utils/enums/roles.enum';
 import { JwtService } from '@nestjs/jwt';
 import { Types } from 'mongoose';
-import { SubOfficeService } from '../sub_office/sub_office.service';
 
 @Controller('users')
 @UseGuards(IsActiveGuard, JwtAuthGuard)
@@ -48,7 +47,6 @@ export class UsersController {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-    private subOfficeService: SubOfficeService,
   ) {}
 
   /**
@@ -68,7 +66,7 @@ export class UsersController {
    * @returns - El usuario encontrado o null si no existe
    */
   @Get('id/:id')
-  findOneById(@Param('id') id: string) {
+  findOneById(@Param('id') id: string | Types.ObjectId) {
     return this.usersService.findOneById(id);
   }
 
@@ -91,41 +89,19 @@ export class UsersController {
    */
   @Post('/')
   // @UseGuards(AdminGuard)
-  async createUser(@Body() body: { user: userDto; subOfficeId: string }) {
-    if (body.user.role === Roles.SuperAdmin) {
+  createUser(@Body() body: userDto) {
+    if (body.role === Roles.SuperAdmin) {
       throw new HttpException('No se puede crear un manager o superAdmin', 400);
-    } else if (body.user.role === Roles.Admin) {
+    } else if (body.role === Roles.Admin) {
       throw new HttpException('No se puede crear un adminastrador', 400);
     }
 
-    if (!Object.values(Roles).includes(body.user.role)) {
+    if (!Object.values(Roles).includes(body.role)) {
       throw new ConflictException('Rol no válido');
     }
 
-    try {
-      const newUser = await this.usersService.createUser({
-        ...body.user,
-        isActive: true,
-      });
-      try {
-        const subOffice = await this.subOfficeService.findOne(body.subOfficeId);
-
-        if (!subOffice) {
-          throw new NotFoundException('No se encontro la sucursal');
-        }
-        const userArray = [...subOffice.users, newUser._id];
-        const subOfficeUpdated = await this.subOfficeService.update(
-          body.subOfficeId,
-          { users: userArray },
-        );
-      } catch (error) {
-        throw new ConflictException(
-          'No se pudo actualizar la sucursal ' + error,
-        );
-      }
-    } catch (error) {
-      throw new ConflictException('No se pudo crear el usuario: ' + error);
-    }
+    const newUser = this.usersService.createUser({ ...body, isActive: true });
+    return newUser;
   }
 
   /**
@@ -138,7 +114,7 @@ export class UsersController {
    */
   @Put('update-self/:id')
   async updateSelf(
-    @Param('id') id: string,
+    @Param('id') id: string | Types.ObjectId,
     @Body() user: userDto,
     @Req() req: Express.Request & { user: any },
   ) {
@@ -163,7 +139,7 @@ export class UsersController {
    */
   @Put('update-user/:id')
   @UseGuards(AdminGuard)
-  updateUser(@Param('id') id: string, @Body() user: userDto) {
+  updateUser(@Param('id') id: string | Types.ObjectId, @Body() user: userDto) {
     if (user.role !== Roles.User) {
       throw new ConflictException('Sin permiso para modificar este usuario');
     }
@@ -181,7 +157,7 @@ export class UsersController {
   @Put('update-admin/:id')
   @UseGuards(AdminGuard)
   async updateAdmin(
-    @Param('id') id: string,
+    @Param('id') id: string | Types.ObjectId,
     @Body() user: userDto,
     @Req() req: Express.Request & { user: any },
   ) {
@@ -203,7 +179,7 @@ export class UsersController {
    */
   @Delete('delete-admin/:id')
   @UseGuards(SuperAdminGuard)
-  deleteAdmin(@Param('id') id: string) {
+  deleteAdmin(@Param('id') id: string | Types.ObjectId) {
     return this.usersService.deleteAdmin(id);
   }
 
@@ -215,22 +191,8 @@ export class UsersController {
    */
   @Delete('delete-user/:id')
   @UseGuards(AdminGuard)
-  async deleteUser(@Param('id') id: string) {
-    try {
-      const userId = new Types.ObjectId(id);
-      this.usersService.deleteUser(id);
-      const subOffices = await this.subOfficeService.findAll();
-      subOffices.forEach((subOffice) => {
-        const index = subOffice.users.indexOf(userId);
-        if (index > -1) {
-          subOffice.users.splice(index, 1);
-          this.subOfficeService.update(subOffice._id, subOffice);
-        }
-      });
-      return 'El usuario ha sido eliminado y la/s sucursal/es actualizada';
-    } catch (error) {
-      throw new ConflictException('No se pudo eliminar el usuario: ' + error);
-    }
+  deleteUser(@Param('id') id: string | Types.ObjectId) {
+    return this.usersService.deleteUser(id);
   }
 
   /**

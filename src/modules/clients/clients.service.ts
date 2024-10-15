@@ -2,7 +2,7 @@
 /* eslint-disable */
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CreateClientDto } from 'src/dtos/create-client.dto';
 import { UpdateClientDto } from 'src/dtos/update-client.dto';
 import { Client } from 'src/schemas/clients.schema';
@@ -22,20 +22,23 @@ export class ClientsService {
     return this.expenseModel.find().exec();
   }
 
-  async findOne(id: string): Promise<Client> {
-    return this.expenseModel.findById(id).exec();
+  async findOne(id: string | Types.ObjectId): Promise<Client> {
+    const clientId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+    return this.expenseModel.findById(clientId).exec();
   }
 
   async update(
-    id: string,
+    id: string | Types.ObjectId,
     updateClientsDto: Partial<UpdateClientDto>,
   ): Promise<Client> {
+    const clientId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
     return this.expenseModel
-      .findByIdAndUpdate(id, updateClientsDto, { new: true })
+      .findByIdAndUpdate(clientId, updateClientsDto, { new: true })
       .exec();
   }
 
-  async remove(id: string): Promise<void> {
-    await this.expenseModel.findByIdAndDelete(id).exec();
+  async remove(id: string | Types.ObjectId): Promise<void> {
+    const clientId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+    await this.expenseModel.findByIdAndDelete(clientId).exec();
   }
 }

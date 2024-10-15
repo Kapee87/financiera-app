@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import {
   CashRegister,
   CashRegisterDocument,
@@ -83,7 +83,7 @@ export class CashRegisterService {
     );
   }
 
-  async closeDay(id: string): Promise<CashRegister> {
+  async closeDay(id: string | Types.ObjectId): Promise<CashRegister> {
     const cashRegister = await this.cashRegisterModel.findById(id);
     if (!cashRegister) {
       throw new NotFoundException(`La caja diaria con ID ${id} no existe`);
@@ -126,7 +126,10 @@ export class CashRegisterService {
     return cashRegister.save();
   }
 
-  async updateCashRegister(subOfficeId: string, amount: number): Promise<void> {
+  async updateCashRegister(
+    subOfficeId: string | Types.ObjectId,
+    amount: number,
+  ): Promise<void> {
     const cashRegister =
       await this.getCurrentCashRegisterForSubOffice(subOfficeId);
     if (!cashRegister) {
@@ -146,7 +149,7 @@ export class CashRegisterService {
   }
 
   async getCurrentCashRegisterForSubOffice(
-    subOfficeId: string,
+    subOfficeId: string | Types.ObjectId,
   ): Promise<CashRegisterDocument | null> {
     const today = this.truncateDate(new Date());
     const tomorrow = new Date(today);

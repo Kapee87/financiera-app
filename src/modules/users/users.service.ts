@@ -18,7 +18,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { userDto } from 'src/dtos/user.dto';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
@@ -42,7 +42,6 @@ export class UsersService {
   constructor(
     @InjectModel(User.name)
     private userModel: Model<User>,
-    private configService: ConfigService,
   ) {}
 
   /**
@@ -85,7 +84,7 @@ export class UsersService {
    * @param id - ID del usuario a buscar
    * @returns El usuario encontrado
    */
-  async findOneById(id: string): Promise<User> {
+  async findOneById(id: string | Types.ObjectId): Promise<User> {
     try {
       const userFound = await this.userModel.findById(id);
       if (!userFound) {
@@ -138,9 +137,13 @@ export class UsersService {
    * @param user - Información del usuario a actualizar
    * @returns El usuario actualizado
    */
-  async updateUser(id: string, user: Partial<userDto>): Promise<User> {
+  async updateUser(
+    id: string | Types.ObjectId,
+    user: Partial<userDto>,
+  ): Promise<User> {
+    const userId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
     try {
-      return this.userModel.findByIdAndUpdate(id, user, { new: true });
+      return this.userModel.findByIdAndUpdate(userId, user, { new: true });
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
@@ -154,8 +157,9 @@ export class UsersService {
    * @param id - ID del usuario a eliminar
    * @returns Un mensaje de confirmación de eliminación
    */
-  async deleteUser(id: string) {
-    const user = await this.userModel.findById(id);
+  async deleteUser(id: string | Types.ObjectId) {
+    const userId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+    const user = await this.userModel.findById(userId);
 
     if (!user) {
       console.log('Usuario no encontrado');
@@ -166,7 +170,7 @@ export class UsersService {
       );
     } else {
       console.log('Usuario eliminado exitosamente'); // Consider returning a success message instead of logging.
-      await this.userModel.findByIdAndDelete(id);
+      await this.userModel.findByIdAndDelete(userId);
       return 'Usuario eliminado exitosamente';
     }
   }
@@ -178,8 +182,9 @@ export class UsersService {
    * @param id - ID del usuario a eliminar
    * @returns Un mensaje de confirmación de eliminación
    */
-  async deleteAdmin(id: string) {
-    const user = await this.userModel.findByIdAndDelete(id);
+  async deleteAdmin(id: string | Types.ObjectId) {
+    const userId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+    const user = await this.userModel.findByIdAndDelete(userId);
 
     if (!user) {
       console.log('Usuario no encontrado');

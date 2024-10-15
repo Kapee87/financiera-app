@@ -12,7 +12,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Currency } from 'src/schemas/currency.schema';
 
 /**
@@ -65,8 +65,10 @@ export class CurrencyService {
    * @param {string} id ID de la moneda
    * @returns {Promise<Currency>} Moneda encontrada
    */
-  async findOne(id: string): Promise<Currency> {
-    const currency = await this.currencyModel.findById(id).exec();
+  async findOne(id: string | Types.ObjectId): Promise<Currency> {
+    const currencyId =
+      id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+    const currency = await this.currencyModel.findById(currencyId).exec();
     if (!currency) {
       throw new NotFoundException(`No se encontró la moneda con ID ${id}`);
     }
@@ -80,9 +82,14 @@ export class CurrencyService {
    * @param {Partial<Currency>} currencyData Datos de la moneda a actualizar
    * @returns {Promise<Currency>} Moneda actualizada
    */
-  async update(id: string, currencyData: Partial<Currency>): Promise<Currency> {
+  async update(
+    id: string | Types.ObjectId,
+    currencyData: Partial<Currency>,
+  ): Promise<Currency> {
+    const currencyId =
+      id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
     const updatedCurrency = await this.currencyModel
-      .findByIdAndUpdate(id, currencyData, { new: true })
+      .findByIdAndUpdate(currencyId, currencyData, { new: true })
       .exec();
 
     if (!updatedCurrency) {
@@ -98,9 +105,11 @@ export class CurrencyService {
    * @param {string} id ID de la moneda
    * @returns {Promise<Currency>} Moneda eliminada
    */
-  async delete(id: string): Promise<Currency> {
+  async delete(id: string | Types.ObjectId): Promise<Currency> {
+    const currencyId =
+      id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
     const deletedCurrency = await this.currencyModel
-      .findByIdAndDelete(id)
+      .findByIdAndDelete(currencyId)
       .exec();
 
     if (!deletedCurrency) {
