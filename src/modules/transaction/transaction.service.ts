@@ -8,8 +8,12 @@
  * @version 1.0.0
  * @since 2020-07-20
  */
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import {
   Transaction,
@@ -20,6 +24,7 @@ import { CurrencyService } from '../currency/currency.service';
 import { CashRegisterService } from '../cash_register/cash_register.service';
 import { CreateTransactionDto } from 'src/dtos/create-transaction.dto';
 import { UsersService } from '../users/users.service';
+import { Connection } from 'mongoose';
 
 @Injectable()
 export class TransactionService {
@@ -41,13 +46,28 @@ export class TransactionService {
     private currencyService: CurrencyService,
     private cashService: CashRegisterService,
     private userService: UsersService,
+    @InjectConnection() private connection: Connection,
   ) {}
 
   /**
    * Crea una nueva transacción
    *
-   * Crea una nueva transacción con los datos proporcionados y actualiza los stocks
-   * y la caja correspondientes
+   * Tipos de operaciones:
+   * 'buy':
+   * - sourceCurrency: la moneda que el cliente entrega
+   * - targetCurrency: la moneda que el cliente recibe
+   * - amount: la cantidad de la moneda que el cliente quiere recibir
+   *
+   * 'sell':
+   * - sourceCurrency: la moneda que el cliente entrega
+   * - targetCurrency: la moneda que el cliente recibe
+   * - amount: la cantidad de la moneda que el cliente entrega
+   *
+   * 'check':
+   * - sourceCurrency: siempre será CHECK
+   * - targetCurrency: siempre será ARS
+   * - amount: el valor nominal del cheque
+   * - exchangeRate: porcentaje que se retiene como comisión (ej: 0.95 para 5% de comisión)
    *
    * @param createTransactionDto Datos de la transacción a crear
    * @returns La transacción creada
@@ -55,135 +75,208 @@ export class TransactionService {
   async create(
     createTransactionDto: CreateTransactionDto,
   ): Promise<Transaction> {
-    const {
-      user,
-      subOffice,
-      sourceCurrency,
-      targetCurrency,
-      type,
-      amount,
-      exchangeRate,
-    } = createTransactionDto;
+    const session = await this.connection.startSession();
+    try {
+      await session.withTransaction(async () => {
+        const {
+          user,
+          subOffice,
+          sourceCurrency,
+          targetCurrency,
+          type,
+          amount,
+          exchangeRate,
+          checkNumber,
+          checkDueDate,
+          bankName,
+        } = createTransactionDto;
 
-    // Obtener datos de usuario, sucursal y monedas
-    const userData = await this.userService.findOneById(user.toString());
-    const subOfficeData = await this.subOfficeService.findOne(
-      subOffice.toString(),
-    );
-    const sourceCurrencyData = await this.currencyService.findOne(
-      sourceCurrency.toString(),
-    );
-    const targetCurrencyData = await this.currencyService.findOne(
-      targetCurrency.toString(),
-    );
+        // Validaciones específicas por tipo de operación
+        if (type === 'check') {
+          if (!checkNumber || !checkDueDate || !bankName) {
+            throw new BadRequestException(
+              'Las operaciones de cheques deben tener el campo checkNumber, checkDueDate y bankName',
+            );
+          }
 
-    // Calcular el otro monto basado en la tasa de cambio
-    let sourceAmount: number;
-    let targetAmount: number;
-    if (type === 'buy') {
-      sourceAmount = amount;
-      targetAmount = Math.trunc(amount * exchangeRate * 100) / 100;
-    } else {
-      // sell or exchange
-      targetAmount = amount;
-      sourceAmount = Math.trunc((amount / exchangeRate) * 100) / 100;
+          const arsId = (await this.currencyService.findByCode('ARS'))._id;
+          if (targetCurrency.toString() !== arsId.toString()) {
+            throw new BadRequestException(
+              'Las operaciones de cheque no pueden ser realizadas con moneda diferente a ARS',
+            );
+          }
+        } else {
+          if (sourceCurrency.toString() === targetCurrency.toString()) {
+            throw new BadRequestException(
+              'Las monedas de la transacción no pueden ser iguales',
+            );
+          }
+        }
+
+        const [
+          userData,
+          subOfficeData,
+          sourceCurrencyData,
+          targetCurrencyData,
+        ] = await Promise.all([
+          this.userService.findOneById(user.toString()),
+          this.subOfficeService.findOne(subOffice.toString()),
+          this.currencyService.findOne(sourceCurrency.toString()),
+          this.currencyService.findOne(targetCurrency.toString()),
+        ]);
+
+        let sourceAmount: number;
+        let targetAmount: number;
+
+        switch (type) {
+          case 'buy':
+            targetAmount = amount;
+            sourceAmount = amount * exchangeRate;
+            break;
+          case 'sell':
+            sourceAmount = amount;
+            targetAmount = amount * exchangeRate;
+            break;
+          case 'check':
+            sourceAmount = amount;
+            targetAmount = amount * exchangeRate;
+            break;
+          default:
+            throw new Error('Tipo de operación no soportada');
+        }
+
+        if (type !== 'check') {
+          const currentSourceStock =
+            await this.subOfficeService.getCurrencyStock(
+              subOffice.toString(),
+              type === 'buy'
+                ? targetCurrency.toString()
+                : sourceCurrency.toString(),
+            );
+
+          const requiredStock = type === 'buy' ? targetAmount : sourceAmount;
+
+          if (currentSourceStock < requiredStock) {
+            throw new BadRequestException(
+              `Stock insuficiente para ${type === 'buy' ? targetCurrencyData.code : sourceCurrencyData.code}. ` +
+                `Requerido: ${requiredStock}, Disponible: ${currentSourceStock}`,
+            );
+          }
+        }
+
+        // Pasar la sesión a las operaciones de stock
+        if (type === 'check') {
+          await this.subOfficeService.updateCurrencyStock(
+            subOffice.toString(),
+            targetCurrency.toString(),
+            targetAmount,
+            'increase',
+            session,
+          );
+        } else {
+          await this.updateStocks(
+            createTransactionDto,
+            sourceAmount,
+            targetAmount,
+            type,
+            session,
+          );
+        }
+
+        await this.handleCashRegister(
+          subOffice.toString(),
+          type,
+          sourceAmount,
+          targetAmount,
+          session,
+        );
+
+        const transaction = new this.transactionModel({
+          ...createTransactionDto,
+          userName: userData.username,
+          subOfficeName: subOfficeData.name,
+          sourceCurrencyCode: sourceCurrencyData.code,
+          targetCurrencyCode: targetCurrencyData.code,
+          sourceAmount,
+          targetAmount,
+          ...(type === 'check' && {
+            checkNumber,
+            checkDueDate,
+            bankName,
+            checkCommission: (1 - exchangeRate) * 100,
+          }),
+        });
+
+        await transaction.save({ session });
+      });
+
+      return await this.transactionModel
+        .findOne({
+          user: createTransactionDto.user,
+          createdAt: { $gte: new Date(Date.now() - 1000) },
+        })
+        .exec();
+    } catch (error) {
+      throw new BadRequestException(
+        `Error creating transaction: ${error.message}`,
+      );
+    } finally {
+      await session.endSession();
     }
-
-    // Verificar y actualizar stocks
-    await this.updateStocks(
-      subOffice.toString(),
-      sourceCurrency.toString(),
-      targetCurrency.toString(),
-      sourceAmount,
-      targetAmount,
-      type,
-    );
-
-    // Manejar la caja
-    await this.handleCashRegister(
-      subOffice.toString(),
-      type,
-      sourceAmount,
-      targetAmount,
-      exchangeRate,
-    );
-
-    const transaction = new this.transactionModel({
-      ...createTransactionDto,
-      userName: userData.username,
-      subOfficeName: subOfficeData.name,
-      sourceCurrencyCode: sourceCurrencyData.code,
-      targetCurrencyCode: targetCurrencyData.code,
-      sourceAmount,
-      targetAmount,
-    });
-
-    return transaction.save();
   }
 
   /**
-   * Actualiza los stocks de la sucursal y las monedas correspondientes
+   * Actualiza los stocks de las monedas según el tipo de transacción
+   *
+   * Comportamiento por tipo:
+   * - SELL (cliente vende USD):
+   *   → sourceCurrency (USD) aumenta (recibimos)
+   *   → targetCurrency (ARS) disminuye (entregamos)
+   *
+   * - BUY (cliente compra USD):
+   *   → sourceCurrency (ARS) aumenta (recibimos)
+   *   → targetCurrency (USD) disminuye (entregamos)
+   *
+   * - CHECK:
+   *   → solo targetCurrency (ARS) aumenta (recibimos el cheque)
    *
    * @param subOfficeId Identificador de la sucursal
    * @param sourceCurrencyId Identificador de la moneda fuente
    * @param targetCurrencyId Identificador de la moneda destino
    * @param sourceAmount Monto de la moneda fuente
    * @param targetAmount Monto de la moneda destino
-   * @param type Tipo de transacción (buy, sell o exchange)
+   * @param type Tipo de transacción (buy, sell o check)
    */
   private async updateStocks(
-    subOfficeId: string,
-    sourceCurrencyId: string,
-    targetCurrencyId: string,
+    transaction: CreateTransactionDto,
     sourceAmount: number,
     targetAmount: number,
     type: string,
+    session: any,
   ): Promise<void> {
-    console.log(
-      'subOfficeId, sourceCurrencyId, targetCurrencyId, sourceAmount, targetAmount, type',
-    );
-    console.log(subOfficeId, sourceCurrencyId, targetCurrencyId);
-
-    if (type === 'buy') {
-      await this.subOfficeService.updateCurrencyStock(
-        subOfficeId,
-        sourceCurrencyId,
-        sourceAmount,
-        'increase',
-      );
-      await this.subOfficeService.updateCurrencyStock(
-        subOfficeId,
-        targetCurrencyId,
-        targetAmount,
-        'decrease',
-      );
-    } else if (type === 'sell') {
-      await this.subOfficeService.updateCurrencyStock(
-        subOfficeId,
-        sourceCurrencyId,
-        sourceAmount,
-        'decrease',
-      );
-      await this.subOfficeService.updateCurrencyStock(
-        subOfficeId,
-        targetCurrencyId,
-        targetAmount,
-        'increase',
-      );
-    } else if (type === 'exchange') {
-      await this.subOfficeService.updateCurrencyStock(
-        subOfficeId,
-        sourceCurrencyId,
-        sourceAmount,
-        'decrease',
-      );
-      await this.subOfficeService.updateCurrencyStock(
-        subOfficeId,
-        targetCurrencyId,
-        targetAmount,
-        'increase',
-      );
+    if (isNaN(sourceAmount) || isNaN(targetAmount)) {
+      throw new BadRequestException('Invalid amount: NaN');
     }
+
+    const sourceCurrencyOperation = 'increase';
+    const targetCurrencyOperation = 'decrease';
+
+    await Promise.all([
+      this.subOfficeService.updateCurrencyStock(
+        transaction.subOffice,
+        transaction.sourceCurrency,
+        sourceAmount,
+        sourceCurrencyOperation,
+        session,
+      ),
+      this.subOfficeService.updateCurrencyStock(
+        transaction.subOffice,
+        transaction.targetCurrency,
+        targetAmount,
+        targetCurrencyOperation,
+        session,
+      ),
+    ]);
   }
 
   /**
@@ -195,24 +288,24 @@ export class TransactionService {
    * @param targetAmount Monto de la moneda destino
    * @param exchangeRate Tasa de cambio
    */
+
   private async handleCashRegister(
     subOfficeId: string,
     type: string,
     sourceAmount: number,
     targetAmount: number,
-    exchangeRate: number,
+    session: any,
   ): Promise<void> {
     let cashChange = 0;
 
     if (type === 'buy') {
-      cashChange = -targetAmount; // Salida de efectivo en moneda local
+      cashChange = -sourceAmount;
     } else if (type === 'sell') {
-      cashChange = sourceAmount; // Entrada de efectivo en moneda local
+      cashChange = targetAmount;
     }
 
-    await this.cashService.updateCashRegister(subOfficeId, cashChange);
+    await this.cashService.updateCashRegister(subOfficeId, cashChange, session);
   }
-
   /**
    * Obtiene todas las transacciones
    *
@@ -339,16 +432,12 @@ export class TransactionService {
     subOfficeId: string | Types.ObjectId,
     date: Date,
   ): Promise<Transaction[]> {
-    const id =
-      subOfficeId instanceof Types.ObjectId
-        ? subOfficeId
-        : new Types.ObjectId(subOfficeId);
     const startOfDay = new Date(date.setHours(0, 0, 0, 0));
     const endOfDay = new Date(date.setHours(23, 59, 59, 999));
 
     return this.transactionModel
       .find({
-        subOffice: id,
+        subOffice: subOfficeId,
         createdAt: {
           $gte: startOfDay,
           $lte: endOfDay,

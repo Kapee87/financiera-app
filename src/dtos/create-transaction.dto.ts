@@ -8,10 +8,13 @@
  * @property {ObjectId} subOffice - Identificador de la suboficina en la que se realiza la transacción
  * @property {ObjectId} sourceCurrency - Identificador de la moneda fuente de la transacción
  * @property {ObjectId} targetCurrency - Identificador de la moneda destino de la transacción
- * @property {string} type - Tipo de transacción (buy, sell, check)
+ * @property {string} type - Tipo de transacción (buy, sell, check, exchange)
  * @property {number} amount - Monto de la transacción
  * @property {number} exchangeRate - Tasa de cambio de la moneda (opcional)
  * @property {number} commission - Comisión de la transacción (opcional)
+ * @property {string} checkNumber - Número de cheque (opcional, solo para transacciones de tipo "check")
+ * @property {Date} checkDueDate - Fecha de vencimiento del cheque (opcional, solo para transacciones de tipo "check")
+ * @property {string} bankName - Nombre del banco (opcional, solo para transacciones de tipo "check")
  */
 import {
   IsEnum,
@@ -19,6 +22,9 @@ import {
   IsNumber,
   IsOptional,
   IsMongoId,
+  IsString,
+  IsDate,
+  ValidateIf,
 } from 'class-validator';
 import { Types } from 'mongoose';
 
@@ -35,7 +41,7 @@ export class CreateTransactionDto {
   @IsMongoId()
   targetCurrency: Types.ObjectId;
 
-  @IsEnum(['buy', 'sell', 'check'])
+  @IsEnum(['buy', 'sell', 'check', 'exchange'])
   type: string;
 
   @IsNumber()
@@ -48,4 +54,19 @@ export class CreateTransactionDto {
   @IsNumber()
   @IsOptional()
   commission?: number;
+
+  // Campos para cheques
+  @ValidateIf((o) => o.type === 'check')
+  @IsString()
+  @IsNotEmpty()
+  checkNumber?: string;
+
+  @ValidateIf((o) => o.type === 'check')
+  @IsDate()
+  checkDueDate?: Date;
+
+  @ValidateIf((o) => o.type === 'check')
+  @IsString()
+  @IsNotEmpty()
+  bankName?: string;
 }

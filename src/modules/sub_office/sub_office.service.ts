@@ -13,17 +13,44 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model, Types } from 'mongoose';
 import { createSubOfficeDto } from 'src/dtos/create-subOffice.dto';
 import { updateSubOfficeDto } from 'src/dtos/update-subOffice.dto';
 import { SubOffice } from 'src/schemas/sub_office.schema';
 
 @Injectable()
 export class SubOfficeService {
+  private readonly MAX_RETRIES = 3;
+  private readonly RETRY_DELAY = 1000;
   constructor(
     @InjectModel(SubOffice.name) private sub_officeModel: Model<SubOffice>,
+    @InjectConnection() private connection: Connection,
   ) {}
+
+  private async retry<T>(operation: () => Promise<T>): Promise<T> {
+    let lastError;
+    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error;
+        if (
+          error.message?.includes('Write conflict') ||
+          error.message?.includes('Please retry')
+        ) {
+          if (attempt < this.MAX_RETRIES) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, this.RETRY_DELAY * attempt),
+            );
+            continue;
+          }
+        }
+        throw error;
+      }
+    }
+    throw lastError;
+  }
 
   /**
    * Crea una nueva suboficina
@@ -37,8 +64,7 @@ export class SubOfficeService {
     sub_officeData: Partial<createSubOfficeDto>,
   ): Promise<SubOffice> {
     try {
-      const newSub_office = new this.sub_officeModel(sub_officeData);
-      return await newSub_office.save();
+      return await this.sub_officeModel.create(sub_officeData);
     } catch (error) {
       if (error.code === 11000) {
         // Este es el código de error para clave duplicada en MongoDB
@@ -48,7 +74,7 @@ export class SubOfficeService {
           `Ya existe una sucursal con ${field}: ${value}`,
         );
       }
-      throw new ConflictException(error); // Si no es un error de duplicado, lanzamos el error original
+      throw new ConflictException('Error al crear la suboficina ' + error); // Si no es un error de duplicado, lanzamos el error original
     }
   }
 
@@ -114,7 +140,7 @@ export class SubOfficeService {
     }
 
     // Manejar la actualización de monedas
-    if (sub_officeData.currencies) {
+    if (sub_officeData.currencies && sub_officeData.currencies.length > 0) {
       const currentCurrencies = subOffice.currencies || [];
 
       for (const currencyData of sub_officeData.currencies) {
@@ -207,58 +233,167 @@ export class SubOfficeService {
     currencyId: string | Types.ObjectId,
     amount: number,
     operation: 'increase' | 'decrease' | 'set',
-  ): Promise<void> {
+    session?: any,
+  ): Promise<string> {
+    if (session) {
+      // Si se proporciona una sesión externa, usarla directamente
+      const subOffice = await this.sub_officeModel
+        .findById(subOfficeId)
+        .session(session);
+
+      if (!subOffice) {
+        throw new NotFoundException(
+          `No se encontró la sucursal con ID ${subOfficeId}`,
+        );
+      }
+
+      const currencyObjectId =
+        currencyId instanceof Types.ObjectId
+          ? currencyId
+          : new Types.ObjectId(currencyId);
+
+      const currencyIndex = subOffice.currencies.findIndex(
+        (c) => c.currency?.toString() === currencyObjectId.toString(),
+      );
+
+      if (currencyIndex === -1) {
+        subOffice.currencies.push({
+          currency: currencyObjectId,
+          stock: 0,
+        });
+      }
+
+      const currency =
+        currencyIndex === -1
+          ? subOffice.currencies[subOffice.currencies.length - 1]
+          : subOffice.currencies[currencyIndex];
+
+      switch (operation) {
+        case 'increase':
+          currency.stock += amount;
+          break;
+        case 'decrease':
+          if (currency.stock < amount) {
+            throw new ConflictException(
+              `Stock insuficiente para realizar esta operación. Stock actual: ${currency.stock}, Cantidad requerida: ${amount}`,
+            );
+          }
+          currency.stock -= amount;
+          break;
+        case 'set':
+          currency.stock = amount;
+          break;
+      }
+
+      await subOffice.save({ session });
+      return `Stock actualizado correctamente`;
+    } else {
+      // Si no hay sesión externa, usar el mecanismo de reintentos con una nueva sesión
+      return this.retry(async () => {
+        const session = await this.connection.startSession();
+        try {
+          let result;
+          await session.withTransaction(async () => {
+            const subOffice = await this.sub_officeModel
+              .findById(subOfficeId)
+              .session(session);
+
+            if (!subOffice) {
+              throw new NotFoundException(
+                `No se encontró la sucursal con ID ${subOfficeId}`,
+              );
+            }
+
+            const currencyObjectId =
+              currencyId instanceof Types.ObjectId
+                ? currencyId
+                : new Types.ObjectId(currencyId);
+
+            const currencyIndex = subOffice.currencies.findIndex(
+              (c) => c.currency?.toString() === currencyObjectId.toString(),
+            );
+
+            if (currencyIndex === -1) {
+              subOffice.currencies.push({
+                currency: currencyObjectId,
+                stock: 0,
+              });
+            }
+
+            const currency =
+              currencyIndex === -1
+                ? subOffice.currencies[subOffice.currencies.length - 1]
+                : subOffice.currencies[currencyIndex];
+
+            switch (operation) {
+              case 'increase':
+                currency.stock += amount;
+                break;
+              case 'decrease':
+                if (currency.stock < amount) {
+                  throw new ConflictException(
+                    `Stock insuficiente para realizar esta operación. Stock actual: ${currency.stock}, Cantidad requerida: ${amount}`,
+                  );
+                }
+                currency.stock -= amount;
+                break;
+              case 'set':
+                currency.stock = amount;
+                break;
+            }
+
+            await subOffice.save({ session });
+            result = `Stock actualizado correctamente`;
+          });
+          return result;
+        } finally {
+          session.endSession();
+        }
+      });
+    }
+  }
+  /**
+   * Elimina una moneda de una suboficina
+   *
+   * Si la moneda no existe en la suboficina, lanza un error de no encontrado
+   *
+   * @param {string | Types.ObjectId} subOfficeId - ID de la suboficina
+   * @param {string | Types.ObjectId} currencyId - ID de la moneda a eliminar
+   * @returns {Promise<string>} Un mensaje de confirmación
+   */
+  async deleteCurrencyFromSubOffice(
+    subOfficeId: string | Types.ObjectId,
+    currencyId: string | Types.ObjectId,
+  ): Promise<string> {
     const subOfficeObjectId =
       subOfficeId instanceof Types.ObjectId
         ? subOfficeId
         : new Types.ObjectId(subOfficeId);
-    const subOffice = await this.sub_officeModel.findById(subOfficeObjectId);
-
-    console.log(subOffice);
-
+    const subOffice = await this.sub_officeModel.findById(subOfficeId);
     if (!subOffice) {
       throw new NotFoundException(
         `No se encontró la sucursal con ID ${subOfficeId}`,
       );
     }
 
-    const currencyInSubOffice = subOffice.currencies.find(
-      (c) => c.currency.toString() === currencyId,
-    );
-
-    if (!currencyInSubOffice) {
-      // Si la moneda no existe en la sucursal, la agregamos
-      subOffice.currencies.push({
-        currency:
-          currencyId instanceof Types.ObjectId
-            ? currencyId
-            : new Types.ObjectId(currencyId),
-        stock: 0,
-      });
-    }
-
     const index = subOffice.currencies.findIndex(
-      (c) => c.currency.toString() === currencyId,
+      (c) => c._id.toString() === currencyId,
     );
-
-    switch (operation) {
-      case 'increase':
-        subOffice.currencies[index].stock += amount;
-        break;
-      case 'decrease':
-        if (subOffice.currencies[index].stock < amount) {
-          throw new ConflictException(
-            `Stock insuficiente para realizar esta operación currency stock: ${subOffice.currencies[index].stock}  amount: ${amount} `,
-          );
-        }
-        subOffice.currencies[index].stock -= amount;
-        break;
-      case 'set':
-        subOffice.currencies[index].stock = amount;
-        break;
+    if (index > -1) {
+      try {
+        subOffice.currencies.splice(index, 1);
+        await subOffice.save();
+        return 'Moneda eliminada correctamente';
+      } catch (error) {
+        throw new BadRequestException(
+          `Error al eliminar la moneda con ID ${currencyId}: ${error.message}`,
+        );
+      }
+    } else {
+      throw new NotFoundException(
+        `No se encontró la moneda con ID ${currencyId} en la sucursal con ID ${subOfficeId}`,
+      );
     }
-
-    await subOffice.save();
   }
 
   /**
@@ -280,5 +415,31 @@ export class SubOfficeService {
       throw new NotFoundException(`No se encontró la sucursal con ID ${id}`);
     }
     return 'Sub agencia eliminada correctamente';
+  }
+  /**
+   * Obtiene el stock de una moneda específica en una suboficina
+   *
+   * @param {string | Types.ObjectId} subOfficeId - ID de la suboficina
+   * @param {string | Types.ObjectId} currencyId - ID de la moneda
+   * @returns {Promise<number>} El stock de la moneda en la suboficina
+   */
+  async getCurrencyStock(
+    subOfficeId: string | Types.ObjectId,
+    currencyId: string | Types.ObjectId,
+  ): Promise<number> {
+    const subOffice = await this.findOne(subOfficeId);
+
+    if (!subOffice) {
+      throw new NotFoundException(`SubOffice with ID ${subOfficeId} not found`);
+    }
+
+    const currencyStock = subOffice.currencies.find(
+      (stock) => stock.currency.toString() === currencyId.toString(),
+    );
+
+    if (!currencyStock) {
+      return 0; // Si no se encuentra stock para esta moneda, asumimos que es 0
+    }
+    return currencyStock.stock;
   }
 }

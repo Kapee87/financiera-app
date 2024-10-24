@@ -1,5 +1,6 @@
 /* eslint-disable */
 import {
+  ConflictException,
   forwardRef,
   Inject,
   Injectable,
@@ -30,40 +31,100 @@ export class CashRegisterService {
   private truncateDate(date: Date): Date {
     return new Date(date.getFullYear(), date.getMonth(), date.getDate());
   }
-
   async startDay(
     createCashRegisterDto: CreateCashRegisterDto,
   ): Promise<CashRegister> {
-    const existingRegister = await this.getCurrentCashRegisterForSubOffice(
-      createCashRegisterDto.sub_office,
-    );
-    if (existingRegister) {
-      throw new Error('Ya existe una caja abierta para esta sub-oficina hoy');
-    }
-
-    if (createCashRegisterDto.date === undefined) {
-      createCashRegisterDto.date = this.truncateDate(new Date());
-    } else {
-      createCashRegisterDto.date = this.truncateDate(
-        new Date(createCashRegisterDto.date),
+    try {
+      const existingRegister = await this.getCurrentCashRegisterForSubOffice(
+        createCashRegisterDto.sub_office,
       );
+      if (existingRegister) {
+        throw new ConflictException(
+          'Ya existe una caja abierta para esta sub-oficina hoy',
+        );
+      }
+
+      if (createCashRegisterDto.date === undefined) {
+        createCashRegisterDto.date = this.truncateDate(new Date());
+      } else {
+        createCashRegisterDto.date = this.truncateDate(
+          new Date(createCashRegisterDto.date),
+        );
+      }
+
+      // Calcular el opening_balance automáticamente
+      const opening_balance = await this.calculateOpeningBalance(
+        createCashRegisterDto.sub_office,
+      );
+
+      const cashRegister = new this.cashRegisterModel({
+        ...createCashRegisterDto,
+        opening_balance,
+        closing_balance: null,
+        total_income: 0,
+        total_expenses: 0,
+        difference: 0,
+      });
+
+      return await cashRegister.save();
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      throw new ConflictException(`Error al iniciar el día: ${error.message}`);
+    }
+  }
+
+  private async calculateOpeningBalance(
+    subOfficeId: string | Types.ObjectId,
+  ): Promise<number> {
+    console.log(`Calculating opening balance for subOffice: ${subOfficeId}`);
+
+    const currencies = await this.currencyService.findAll();
+    console.log('All currencies:', JSON.stringify(currencies, null, 2));
+
+    let totalARSValue = 0;
+    const BASE_CURRENCY = 'ARS';
+    const USD_CURRENCY = 'USD';
+
+    for (const currency of currencies) {
+      console.log(`Processing currency: ${currency.code}`);
+
+      const stock = await this.subOfficeService.getCurrencyStock(
+        subOfficeId,
+        currency._id,
+      );
+      console.log(`Stock for ${currency.code}: ${stock}`);
+
+      let arsRate;
+      if (currency.code === BASE_CURRENCY) {
+        arsRate = 1;
+      } else {
+        // Convertimos todas las monedas a ARS
+        arsRate = currency.exchangeRate;
+      }
+      console.log(`ARS Rate for ${currency.code}: ${arsRate}`);
+
+      const currencyValueInARS = stock * arsRate;
+      console.log(`Value in ARS for ${currency.code}: ${currencyValueInARS}`);
+
+      totalARSValue += currencyValueInARS;
+      console.log(`Running total ARS Value: ${totalARSValue}`);
     }
 
-    const cashRegister = new this.cashRegisterModel({
-      ...createCashRegisterDto,
-      closing_balance: createCashRegisterDto.opening_balance,
-      total_income: 0,
-      total_expenses: 0,
-      difference: 0,
-    });
+    console.log(`Final total ARS Value: ${totalARSValue}`);
 
-    // Actualizar el stock de ARS en la sub-oficina
-    await this.updateARSStock(
-      createCashRegisterDto.sub_office,
-      createCashRegisterDto.opening_balance,
-    );
+    // Convertir el total de ARS a USD
+    const usdCurrency = currencies.find((c) => c.code === USD_CURRENCY);
+    if (!usdCurrency) {
+      throw new Error('USD currency not found');
+    }
+    const usdRate = usdCurrency.exchangeRate;
+    const totalUSDValue = totalARSValue / usdRate;
 
-    return cashRegister.save();
+    const truncatedUSDValue = Number(totalUSDValue.toFixed(2));
+    console.log(`Final total USD Value: ${truncatedUSDValue}`);
+    return truncatedUSDValue;
   }
 
   private async updateARSStock(
@@ -75,16 +136,19 @@ export class CashRegisterService {
       throw new NotFoundException('No se encontró la moneda ARS');
     }
 
+    const truncatedAmount = Number(amount.toFixed(2));
     await this.subOfficeService.updateCurrencyStock(
       subOfficeId,
       arsCurrency._id.toString(),
-      amount,
+      truncatedAmount,
       'set',
     );
   }
 
   async closeDay(id: string | Types.ObjectId): Promise<CashRegister> {
-    const cashRegister = await this.cashRegisterModel.findById(id);
+    const cashRegisterId =
+      id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+    const cashRegister = await this.cashRegisterModel.findById(cashRegisterId);
     if (!cashRegister) {
       throw new NotFoundException(`La caja diaria con ID ${id} no existe`);
     }
@@ -127,25 +191,46 @@ export class CashRegisterService {
   }
 
   async updateCashRegister(
-    subOfficeId: string | Types.ObjectId,
+    subOfficeId: string,
     amount: number,
+    session: any,
   ): Promise<void> {
-    const cashRegister =
-      await this.getCurrentCashRegisterForSubOffice(subOfficeId);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let cashRegister = await this.cashRegisterModel
+      .findOne({
+        sub_office: new Types.ObjectId(subOfficeId),
+        date: today,
+      })
+      .session(session);
+
     if (!cashRegister) {
-      throw new NotFoundException(
-        `No se encontró una caja abierta para la sub-oficina con ID ${subOfficeId}`,
-      );
+      // If no cash register exists for today, create a new one
+      cashRegister = new this.cashRegisterModel({
+        date: today,
+        opening_balance: 0,
+        sub_office: new Types.ObjectId(subOfficeId),
+      });
     }
 
-    cashRegister.closing_balance += amount;
     if (amount > 0) {
       cashRegister.total_income += amount;
     } else {
       cashRegister.total_expenses += Math.abs(amount);
     }
 
-    await cashRegister.save();
+    // Update the closing balance
+    cashRegister.closing_balance =
+      cashRegister.opening_balance +
+      cashRegister.total_income -
+      cashRegister.total_expenses;
+
+    // Calculate the difference
+    cashRegister.difference =
+      cashRegister.closing_balance - cashRegister.opening_balance;
+
+    await cashRegister.save({ session });
   }
 
   async getCurrentCashRegisterForSubOffice(

@@ -8,7 +8,6 @@
  * @property {string} [address] - Dirección de la suboficina (opcional)
  * @property {string} [phone] - Teléfono de la suboficina (opcional)
  * @property {string} [code] - Código de la suboficina (opcional)
- * @property {number} [cashOnhand] - Monto de dinero en efectivo que se encuentra en la suboficina al momento de su actualización (opcional)
  * @property {ObjectId[]} [users] - Arreglo de identificadores de los usuarios que tendrán acceso a la suboficina (opcional)
  * @property {{ currency: ObjectId, stock: number }[]} [currencies] - Arreglo de objetos que contienen la información de las monedas que se manejan en la suboficina (opcional)
  */
@@ -31,10 +30,6 @@ export class updateSubOfficeDto {
   @IsString()
   @IsOptional()
   code?: string;
-
-  @IsNumber()
-  @IsOptional()
-  cashOnhand?: number;
 
   @IsString()
   @IsOptional()

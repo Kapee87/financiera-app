@@ -102,12 +102,32 @@ export class SubOfficeController {
       amount,
       operation,
     }: { amount: number; operation: 'increase' | 'decrease' },
-  ): Promise<void> {
+  ): Promise<string> {
     return this.subOfficeService.updateCurrencyStock(
       subOfficeId,
       currencyId,
       amount,
       operation,
+    );
+  }
+
+  /**
+   * Elimina una moneda de una suboficina
+   *
+   * Si la moneda no existe en la suboficina, lanza un error de no encontrado
+   *
+   * @param {string | Types.ObjectId} subOfficeId - ID de la suboficina
+   * @param {string | Types.ObjectId} currencyId - ID de la moneda a eliminar
+   * @returns {Promise<string>} Un mensaje de confirmación
+   */
+  @Delete(':subOfficeId/currencies/:currencyId')
+  async deleteCurrencyFromSubOffice(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Param('currencyId') currencyId: string | Types.ObjectId,
+  ): Promise<string> {
+    return this.subOfficeService.deleteCurrencyFromSubOffice(
+      subOfficeId,
+      currencyId,
     );
   }
 

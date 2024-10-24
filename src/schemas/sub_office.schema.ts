@@ -8,19 +8,18 @@
  * @property {string} code - Código único de la suboficina
  * @property {string} address - Dirección de la suboficina
  * @property {string} phone - Teléfono de la suboficina
- * @property {number} cashOnhand - Dinero en efectivo disponible en la sub-agencia(pesos ARS)
  * @property {ObjectId[]} users - Lista de usuarios que tienen acceso a esta sucursal
  * @property {{currency: ObjectId, stock: number}[]} currencies - Lista de monedas y su stock disponible
  */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, SchemaTypes, Types } from 'mongoose';
 
 export type SubOfficeDocument = SubOffice & Document;
 
 @Schema()
 export class SubOffice {
-  @Prop()
-  _id: Types.ObjectId;
+  @Prop({ type: SchemaTypes.ObjectId, auto: true })
+  _id: string;
 
   @Prop({ required: true })
   name: string;
@@ -33,9 +32,6 @@ export class SubOffice {
 
   phone: string;
 
-  @Prop({ required: true, type: Number, default: 0 })
-  cashOnhand: number; // Dinero en efectivo disponible en la sub-agencia(pesos ARS)
-
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }] }) // Referencia a usuarios
   users: Types.ObjectId[]; // Lista de usuarios que tienen acceso a esta sucursal
 
@@ -47,7 +43,7 @@ export class SubOffice {
       },
     ],
   })
-  currencies: { currency: Types.ObjectId; stock: number }[];
+  currencies: { currency: Types.ObjectId; stock: number; _id?: string }[];
 }
 
 export const SubOfficeSchema = SchemaFactory.createForClass(SubOffice);

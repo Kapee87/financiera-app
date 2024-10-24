@@ -22,6 +22,11 @@ import { Currency } from 'src/schemas/currency.schema';
  */
 @Injectable()
 export class CurrencyService {
+  /**
+   * Constructor del servicio de monedas
+   *
+   * @param {Model<Currency>} currencyModel Modelo de monedas
+   */
   constructor(
     @InjectModel(Currency.name) private currencyModel: Model<Currency>,
   ) {}
@@ -120,12 +125,46 @@ export class CurrencyService {
   }
 
   /**
-   * Busca una moneda por su código
+   * Obtiene una moneda por su código
    *
    * @param {string} code Código de la moneda
-   * @returns {Promise<Currency | null>} Moneda encontrada o null si no existe
+   * @returns {Promise<Currency>} Moneda encontrada
    */
-  async findByCode(code: string): Promise<Currency | null> {
-    return this.currencyModel.findOne({ code }).exec();
+  async findByCode(code: string): Promise<Currency> {
+    const currency = await this.currencyModel.findOne({ code }).exec();
+    if (!currency) {
+      throw new NotFoundException(`Currency with code ${code} not found`);
+    }
+    return currency;
+  }
+
+  /**
+   * Obtiene la tasa de cambio entre dos monedas
+   *
+   * @param {string} fromCurrency Código de la moneda origen
+   * @param {string} toCurrency Código de la moneda destino
+   * @returns {Promise<number>} Tasa de cambio entre las dos monedas
+   */
+  async getExchangeRate(
+    fromCurrency: string,
+    toCurrency: string,
+  ): Promise<number> {
+    if (fromCurrency === toCurrency) {
+      return 1;
+    }
+
+    const sourceCurrency = await this.findByCode(fromCurrency);
+    const targetCurrency = await this.findByCode(toCurrency);
+
+    if (!sourceCurrency || !targetCurrency) {
+      throw new NotFoundException('One or both currencies not found');
+    }
+
+    // Asumimos que las tasas están almacenadas en relación al USD
+    const sourceRate = sourceCurrency.exchangeRate;
+    const targetRate = targetCurrency.exchangeRate;
+
+    // Calculamos la tasa cruzada
+    return targetRate / sourceRate;
   }
 }

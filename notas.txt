@@ -1,13 +1,7 @@
-{
-    "user": "66f58441ffad9c334e8c0fd8",
-    "subOffice": "66faaea7ff6277c671354323",
-    "sourceCurrency": "66fafa0e60cdf8ddeee4a085",
-    "targetCurrency": "66faae73ff6277c671354321",
-    "type": "buy",
-    "sourceAmount": 100,
-    "targetAmount": 85,
-    "exchangeRate": 0.85,
-    "commission": 2
-}
-
-peticion transaction actualizada
+ahora con esta prueba 
+{     "user": "67082fa26acbb95ff05fa33e",     "subOffice": "67100140bea6a3254822d58b",     "sourceCurrency": "670ffe00336e11e195169025",     "targetCurrency": "670ffdf7336e11e195169023",     "amount": 50,     "type": "buy",     "exchangeRate": 1220 }
+ me dio 
+{     "user": "67082fa26acbb95ff05fa33e",     "userName": "mel",     "subOffice": "67100140bea6a3254822d58b",     "subOfficeName": "Sucursal Centro",     "sourceCurrency": "670ffe00336e11e195169025",     "sourceCurrencyCode": "ARS",     "targetCurrency": "670ffdf7336e11e195169023",     "targetCurrencyCode": "USD",     "sourceAmount": 61000,     "targetAmount": 50,     "exchangeRate": 1220,     "type": "buy",     "_id": "671a94ffdf23b2b924db2ce4",     "createdAt": "2024-10-24T18:42:07.640Z",     "updatedAt": "2024-10-24T18:42:07.640Z",     "__v": 0 }
+ y los stocks: 
+[     {         "_id": "67100140bea6a3254822d58b",         "name": "Sucursal Centro",         "code": "SUC-001",         "address": "Calle Principal 123",         "cashOnhand": 5000,         "users": [             "66fd8a2e8eba389e3dd52db0",             "67082fa26acbb95ff05fa33e"         ],         "currencies": [             {                 "currency": {                     "_id": "670ffdf7336e11e195169023",                     "name": "Dólar estadounidense",                     "code": "USD"                 },                 "stock": 1030,                 "_id": "67100150bea6a3254822d58f"             },             {                 "currency": {                     "_id": "670ffe00336e11e195169025",                     "name": "Peso Argentino",                     "code": "ARS"                 },                 "stock": 963000,                 "_id": "67100150bea6a3254822d590"             },             {                 "currency": {                     "_id": "670ffe03336e11e195169027",                     "name": "Euros",                     "code": "EUR"                 },                 "stock": 1000,                 "_id": "67100193bea6a3254822d599"             }         ],         "__v": 22     } ] 
+esta correcto, verificas?
