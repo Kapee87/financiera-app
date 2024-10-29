@@ -16,6 +16,7 @@ import {
   Delete,
   Param,
   Body,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 
@@ -41,6 +42,8 @@ export class TransactionController {
    */
   @Post()
   create(@Body() transactionData: CreateTransactionDto) {
+    console.log(transactionData);
+
     return this.transactionService.create(transactionData);
   }
 
@@ -85,5 +88,30 @@ export class TransactionController {
   @Delete(':id')
   delete(@Param('id') id: string | Types.ObjectId) {
     return this.transactionService.delete(id);
+  }
+
+  /**
+   * Elimina todas las transacciones
+   * @returns Un mensaje indicando que se han eliminado todas las transacciones
+   */
+  @Delete()
+  deleteAllForDevelopment() {
+    return this.transactionService.deleteAllForDevelopment();
+  }
+
+  /**
+   * Obtiene las transacciones para un día determinado en una suboficina
+   * @param subOfficeId ID de la suboficina para buscar las transacciones
+   * @param date Fecha para buscar las transacciones
+   * @returns Un arreglo con las transacciones encontradas
+   */
+  @Get(':subOfficeId/forDay/:date')
+  getTransactionsForDay(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Param('date') date: Date,
+  ) {
+    console.log('paso por controller');
+
+    return this.transactionService.getTransactionsForDay(subOfficeId, date);
   }
 }

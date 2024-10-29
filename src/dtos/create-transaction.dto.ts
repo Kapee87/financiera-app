@@ -25,6 +25,7 @@ import {
   IsString,
   IsDate,
   ValidateIf,
+  IsDateString,
 } from 'class-validator';
 import { Types } from 'mongoose';
 
@@ -62,8 +63,8 @@ export class CreateTransactionDto {
   checkNumber?: string;
 
   @ValidateIf((o) => o.type === 'check')
-  @IsDate()
-  checkDueDate?: Date;
+  @IsDateString()
+  checkDueDate?: String;
 
   @ValidateIf((o) => o.type === 'check')
   @IsString()

@@ -14,6 +14,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Currency } from 'src/schemas/currency.schema';
+import { SubOfficeService } from '../sub_office/sub_office.service';
 
 /**
  * Constructor del servicio de monedas
@@ -29,6 +30,7 @@ export class CurrencyService {
    */
   constructor(
     @InjectModel(Currency.name) private currencyModel: Model<Currency>,
+    private subOfficeService: SubOfficeService,
   ) {}
 
   /**
@@ -160,11 +162,34 @@ export class CurrencyService {
       throw new NotFoundException('One or both currencies not found');
     }
 
-    // Asumimos que las tasas están almacenadas en relación al USD
+    // Asumimos que las tasas están almacenadas en relación al ARS
     const sourceRate = sourceCurrency.exchangeRate;
     const targetRate = targetCurrency.exchangeRate;
 
     // Calculamos la tasa cruzada
-    return targetRate / sourceRate;
+    return sourceRate / targetRate;
+  }
+  async getSubOfficeCurrenciesWithExchangeRate(
+    subOfficeId: string | Types.ObjectId,
+  ) {
+    const subOffice = await this.subOfficeService.findOne(subOfficeId);
+
+    const currencies = await Promise.all(
+      subOffice.currencies.map(async (currency) => {
+        const currencyDetails = await this.findOne(currency.currency);
+
+        const exchangeRate = await this.getExchangeRate(
+          currencyDetails.code,
+          'ARS',
+        );
+
+        return {
+          code: currencyDetails.code,
+          exchangeRate: exchangeRate,
+        };
+      }),
+    );
+
+    return currencies;
   }
 }

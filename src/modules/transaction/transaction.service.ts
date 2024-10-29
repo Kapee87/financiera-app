@@ -11,6 +11,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
@@ -87,7 +88,9 @@ export class TransactionService {
           amount,
           exchangeRate,
           checkNumber,
-          checkDueDate,
+          checkDueDate = typeof createTransactionDto.checkDueDate === 'string'
+            ? new Date(createTransactionDto.checkDueDate)
+            : createTransactionDto.checkDueDate,
           bankName,
         } = createTransactionDto;
 
@@ -112,6 +115,19 @@ export class TransactionService {
             );
           }
         }
+        const currentCashRegister =
+          await this.cashService.getCurrentCashRegisterForSubOffice(subOffice);
+        if (!currentCashRegister) {
+          throw new BadRequestException(
+            'No hay caja abierta para esta sucursal. Debe abrir la caja antes de realizar operaciones.',
+          );
+        }
+
+        if (currentCashRegister.closing_balance !== null) {
+          throw new BadRequestException(
+            'La caja del día ya está cerrada. No se pueden realizar más operaciones.',
+          );
+        }
 
         const [
           userData,
@@ -130,16 +146,16 @@ export class TransactionService {
 
         switch (type) {
           case 'buy':
-            targetAmount = amount;
-            sourceAmount = amount * exchangeRate;
+            targetAmount = amount; //cantidad que desea el cliente recibir
+            sourceAmount = amount * exchangeRate; // cantidad que entrega el cliente
             break;
           case 'sell':
-            sourceAmount = amount;
-            targetAmount = amount * exchangeRate;
+            sourceAmount = amount; //cantidad que entrega el cliente
+            targetAmount = amount * exchangeRate; // cantidad que desea el cliente
             break;
           case 'check':
-            sourceAmount = amount;
-            targetAmount = amount * exchangeRate;
+            sourceAmount = amount; //cantidad que entrega el cliente(mediante cheque)
+            targetAmount = amount * exchangeRate; // cantidad que desea el cliente
             break;
           default:
             throw new Error('Tipo de operación no soportada');
@@ -183,13 +199,13 @@ export class TransactionService {
           );
         }
 
-        await this.handleCashRegister(
-          subOffice.toString(),
+        /*  await this.handleCashRegister(
+          subOffice,
           type,
           sourceAmount,
           targetAmount,
           session,
-        );
+        ); */
 
         const transaction = new this.transactionModel({
           ...createTransactionDto,
@@ -257,26 +273,50 @@ export class TransactionService {
     if (isNaN(sourceAmount) || isNaN(targetAmount)) {
       throw new BadRequestException('Invalid amount: NaN');
     }
-
-    const sourceCurrencyOperation = 'increase';
-    const targetCurrencyOperation = 'decrease';
-
-    await Promise.all([
-      this.subOfficeService.updateCurrencyStock(
-        transaction.subOffice,
-        transaction.sourceCurrency,
-        sourceAmount,
-        sourceCurrencyOperation,
-        session,
-      ),
-      this.subOfficeService.updateCurrencyStock(
-        transaction.subOffice,
-        transaction.targetCurrency,
-        targetAmount,
-        targetCurrencyOperation,
-        session,
-      ),
-    ]);
+    // En ambas operaciones:
+    // - La moneda que recibimos aumenta
+    // - La moneda que entregamos disminuye
+    if (type === 'sell') {
+      // En SELL:
+      // - Recibimos la sourceCurrency (USD)
+      // - Entregamos la targetCurrency (ARS)
+      await Promise.all([
+        this.subOfficeService.updateCurrencyStock(
+          transaction.subOffice,
+          transaction.sourceCurrency,
+          sourceAmount,
+          'increase', // Recibimos USD
+          session,
+        ),
+        this.subOfficeService.updateCurrencyStock(
+          transaction.subOffice,
+          transaction.targetCurrency,
+          targetAmount,
+          'decrease', // Entregamos ARS
+          session,
+        ),
+      ]);
+    } else if (type === 'buy') {
+      // En BUY:
+      // - Recibimos la sourceCurrency (ARS)
+      // - Entregamos la targetCurrency (USD)
+      await Promise.all([
+        this.subOfficeService.updateCurrencyStock(
+          transaction.subOffice,
+          transaction.sourceCurrency,
+          sourceAmount,
+          'increase', // Recibimos ARS
+          session,
+        ),
+        this.subOfficeService.updateCurrencyStock(
+          transaction.subOffice,
+          transaction.targetCurrency,
+          targetAmount,
+          'decrease', // Entregamos USD
+          session,
+        ),
+      ]);
+    }
   }
 
   /**
@@ -290,7 +330,7 @@ export class TransactionService {
    */
 
   private async handleCashRegister(
-    subOfficeId: string,
+    subOfficeId: Types.ObjectId,
     type: string,
     sourceAmount: number,
     targetAmount: number,
@@ -301,10 +341,18 @@ export class TransactionService {
     if (type === 'buy') {
       cashChange = -sourceAmount;
     } else if (type === 'sell') {
-      cashChange = targetAmount;
+      cashChange = sourceAmount;
     }
 
-    await this.cashService.updateCashRegister(subOfficeId, cashChange, session);
+    try {
+      await this.cashService.updateCashRegister(
+        subOfficeId,
+        cashChange,
+        session,
+      );
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
   /**
    * Obtiene todas las transacciones
@@ -432,17 +480,70 @@ export class TransactionService {
     subOfficeId: string | Types.ObjectId,
     date: Date,
   ): Promise<Transaction[]> {
-    const startOfDay = new Date(date.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+    // Convertir la cadena a objeto Date
+    const parsedDate = new Date(date);
 
-    return this.transactionModel
+    // Verificar si la conversión fue exitosa
+    if (isNaN(parsedDate.getTime())) {
+      throw new BadRequestException('Fecha no válida');
+    }
+
+    const startOfDay = new Date(
+      parsedDate.getUTCFullYear(),
+      parsedDate.getUTCMonth(),
+      parsedDate.getUTCDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+    const endOfDay = new Date(
+      parsedDate.getUTCFullYear(),
+      parsedDate.getUTCMonth(),
+      parsedDate.getUTCDate(),
+      23,
+      59,
+      59,
+      999,
+    );
+    if (!Types.ObjectId.isValid(subOfficeId)) {
+      throw new BadRequestException('El ID de la sub-oficina no es válido');
+    }
+
+    if (!(parsedDate instanceof Date) || isNaN(parsedDate.getTime())) {
+      throw new BadRequestException('Fecha no válida');
+    }
+    const quest = await this.transactionModel
       .find({
-        subOffice: subOfficeId,
-        createdAt: {
-          $gte: startOfDay,
-          $lte: endOfDay,
-        },
+        subOffice: subOfficeId.toString(),
       })
+      .lean()
       .exec();
+    console.log('startOfDay', startOfDay, 'endOfDay', endOfDay);
+
+    try {
+      return await this.transactionModel
+        .find({
+          subOffice: subOfficeId,
+          createdAt: {
+            $gte: startOfDay,
+            $lte: endOfDay,
+          },
+        })
+        .lean()
+        .exec();
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error al obtener las transacciones',
+      );
+    }
+  }
+
+  // Método para desarrollo, usar con precaución
+  async deleteAllForDevelopment(): Promise<any> {
+    const transactions = await this.transactionModel.find().exec();
+    console.log(transactions);
+
+    return this.transactionModel.deleteMany({});
   }
 }

@@ -1,7 +1,81 @@
-ahora con esta prueba 
-{     "user": "67082fa26acbb95ff05fa33e",     "subOffice": "67100140bea6a3254822d58b",     "sourceCurrency": "670ffe00336e11e195169025",     "targetCurrency": "670ffdf7336e11e195169023",     "amount": 50,     "type": "buy",     "exchangeRate": 1220 }
- me dio 
-{     "user": "67082fa26acbb95ff05fa33e",     "userName": "mel",     "subOffice": "67100140bea6a3254822d58b",     "subOfficeName": "Sucursal Centro",     "sourceCurrency": "670ffe00336e11e195169025",     "sourceCurrencyCode": "ARS",     "targetCurrency": "670ffdf7336e11e195169023",     "targetCurrencyCode": "USD",     "sourceAmount": 61000,     "targetAmount": 50,     "exchangeRate": 1220,     "type": "buy",     "_id": "671a94ffdf23b2b924db2ce4",     "createdAt": "2024-10-24T18:42:07.640Z",     "updatedAt": "2024-10-24T18:42:07.640Z",     "__v": 0 }
- y los stocks: 
-[     {         "_id": "67100140bea6a3254822d58b",         "name": "Sucursal Centro",         "code": "SUC-001",         "address": "Calle Principal 123",         "cashOnhand": 5000,         "users": [             "66fd8a2e8eba389e3dd52db0",             "67082fa26acbb95ff05fa33e"         ],         "currencies": [             {                 "currency": {                     "_id": "670ffdf7336e11e195169023",                     "name": "Dólar estadounidense",                     "code": "USD"                 },                 "stock": 1030,                 "_id": "67100150bea6a3254822d58f"             },             {                 "currency": {                     "_id": "670ffe00336e11e195169025",                     "name": "Peso Argentino",                     "code": "ARS"                 },                 "stock": 963000,                 "_id": "67100150bea6a3254822d590"             },             {                 "currency": {                     "_id": "670ffe03336e11e195169027",                     "name": "Euros",                     "code": "EUR"                 },                 "stock": 1000,                 "_id": "67100193bea6a3254822d599"             }         ],         "__v": 22     } ] 
-esta correcto, verificas?
+me revisas  a ver si esta bien esto(respuestas de consultas postman)?
+Stock inicial 
+1000 USD 
+1000000 ARS
+1000 EUR 
+
+transacciones:
+[
+    {
+        "_id": "6721281bdc70f28f68a4f977",
+        "user": "67082fa26acbb95ff05fa33e",
+        "userName": "Usuario no disponible",
+        "subOffice": "67100140bea6a3254822d58b",
+        "subOfficeName": "Sucursal Centro",
+        "sourceCurrency": "670ffe00336e11e195169025",
+        "sourceCurrencyCode": "ARS",
+        "targetCurrency": "670ffdf7336e11e195169023",
+        "targetCurrencyCode": "USD",
+        "sourceAmount": 20000,
+        "targetAmount": 20,
+        "exchangeRate": 1000,
+        "type": "buy",
+        "createdAt": "2024-10-29T18:23:23.022Z",
+        "updatedAt": "2024-10-29T18:23:23.022Z",
+        "__v": 0
+    },
+    {
+        "_id": "6721282cdc70f28f68a4f995",
+        "user": "67082fa26acbb95ff05fa33e",
+        "userName": "Usuario no disponible",
+        "subOffice": "67100140bea6a3254822d58b",
+        "subOfficeName": "Sucursal Centro",
+        "sourceCurrency": "670ffe00336e11e195169025",
+        "sourceCurrencyCode": "ARS",
+        "targetCurrency": "670ffdf7336e11e195169023",
+        "targetCurrencyCode": "USD",
+        "sourceAmount": 20000,
+        "targetAmount": 20,
+        "exchangeRate": 1000,
+        "type": "buy",
+        "createdAt": "2024-10-29T18:23:40.096Z",
+        "updatedAt": "2024-10-29T18:23:40.096Z",
+        "__v": 0
+    },
+    {
+        "_id": "67212857dc70f28f68a4f9b3",
+        "user": "67082fa26acbb95ff05fa33e",
+        "userName": "Usuario no disponible",
+        "subOffice": "67100140bea6a3254822d58b",
+        "subOfficeName": "Sucursal Centro",
+        "sourceCurrency": "670ffdf7336e11e195169023",
+        "sourceCurrencyCode": "USD",
+        "targetCurrency": "670ffe00336e11e195169025",
+        "targetCurrencyCode": "ARS",
+        "sourceAmount": 40,
+        "targetAmount": 36000,
+        "exchangeRate": 900,
+        "type": "sell",
+        "createdAt": "2024-10-29T18:24:23.776Z",
+        "updatedAt": "2024-10-29T18:24:23.776Z",
+        "__v": 0
+    }
+]
+
+caja:
+[
+    {
+        "_id": "67212810dc70f28f68a4f94d",
+        "date": "2024-10-29T03:00:00.000Z",
+        "opening_balance": 2587.69,
+        "closing_balance": 78507.69,
+        "total_income": 76000,
+        "total_expenses": 80,
+        "check_income": 0,
+        "difference": 75920,
+        "sub_office": "67100140bea6a3254822d58b",
+        "createdAt": "2024-10-29T18:23:12.469Z",
+        "updatedAt": "2024-10-29T18:24:57.736Z",
+        "__v": 0
+    }
+]

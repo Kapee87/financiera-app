@@ -4,12 +4,13 @@
  * Se utiliza para crear la instancia de la aplicación y configurar
  * las opciones de CORS.
  *
-  Nahuel Montaner
+ * @author Nahuel Montaner
  * @since 1.0.0
  * @version 1.0.0
  */
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
 
 /**
  * Función que se encarga de crear la instancia de la aplicación
@@ -23,9 +24,12 @@ async function bootstrap(): Promise<void> {
 
   /**
    * Configuración de CORS
+   *
    * Se habilita CORS solo para el frontend en desarrollo
    * o para la URL de producción configurada en la variable de entorno
    * FRONTEND_URL.
+   *
+   * @see https://docs.nestjs.com/security/cors
    */
   app.enableCors({
     origin:
@@ -36,6 +40,19 @@ async function bootstrap(): Promise<void> {
     preflightContinue: false,
     optionsSuccessStatus: 204,
   });
+
+  /**
+   * Habilita la validación automática de los datos de entrada
+   * a través del pipe de validación.
+   *
+   * @see https://docs.nestjs.com/pipes#custom-pipes
+   */
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+    }),
+  );
 
   /**
    * Inicia la escucha de la aplicación en el puerto configurado.

@@ -1,5 +1,6 @@
 /* eslint-disable */
 import {
+  BadRequestException,
   ConflictException,
   forwardRef,
   Inject,
@@ -17,6 +18,12 @@ import { CurrencyService } from '../currency/currency.service';
 import { SubOfficeService } from '../sub_office/sub_office.service';
 import { TransactionService } from '../transaction/transaction.service';
 
+interface DailyTotals {
+  total_income: number;
+  total_expenses: number;
+  check_income: number; // Nuevo campo para seguimiento de cheques
+}
+
 @Injectable()
 export class CashRegisterService {
   constructor(
@@ -28,9 +35,25 @@ export class CashRegisterService {
     private transactionService: TransactionService,
   ) {}
 
-  private truncateDate(date: Date): Date {
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  private truncateDate(date: Date | string): Date {
+    const parseDate = new Date(date);
+    return new Date(
+      parseDate.getUTCFullYear(),
+      parseDate.getUTCMonth(),
+      parseDate.getUTCDate(),
+      0,
+      0,
+      0,
+      0,
+    );
   }
+
+  private getNextDay(date: Date): Date {
+    const nextDay = new Date(date);
+    nextDay.setDate(nextDay.getDate() + 1);
+    return nextDay;
+  }
+
   async startDay(
     createCashRegisterDto: CreateCashRegisterDto,
   ): Promise<CashRegister> {
@@ -38,40 +61,53 @@ export class CashRegisterService {
       const existingRegister = await this.getCurrentCashRegisterForSubOffice(
         createCashRegisterDto.sub_office,
       );
+
       if (existingRegister) {
         throw new ConflictException(
           'Ya existe una caja abierta para esta sub-oficina hoy',
         );
       }
 
-      if (createCashRegisterDto.date === undefined) {
-        createCashRegisterDto.date = this.truncateDate(new Date());
+      let registerDate: Date;
+      if (!createCashRegisterDto.date) {
+        registerDate = this.truncateDate(new Date());
       } else {
-        createCashRegisterDto.date = this.truncateDate(
-          new Date(createCashRegisterDto.date),
-        );
+        try {
+          registerDate = this.truncateDate(createCashRegisterDto.date);
+        } catch (error) {
+          throw new BadRequestException(
+            'Formato de fecha inválido. Use YYYY-MM-DD',
+          );
+        }
       }
 
-      // Calcular el opening_balance automáticamente
       const opening_balance = await this.calculateOpeningBalance(
         createCashRegisterDto.sub_office,
       );
+      console.log(createCashRegisterDto.date, registerDate);
 
       const cashRegister = new this.cashRegisterModel({
         ...createCashRegisterDto,
+        date: registerDate,
         opening_balance,
         closing_balance: null,
         total_income: 0,
         total_expenses: 0,
+        check_income: 0,
         difference: 0,
       });
 
       return await cashRegister.save();
     } catch (error) {
-      if (error instanceof ConflictException) {
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      throw new ConflictException(`Error al iniciar el día: ${error.message}`);
+      throw new BadRequestException(
+        `Error al iniciar el día: ${error.message}`,
+      );
     }
   }
 
@@ -130,6 +166,7 @@ export class CashRegisterService {
   private async updateARSStock(
     subOfficeId: string,
     amount: number,
+    session: any,
   ): Promise<void> {
     const arsCurrency = await this.currencyService.findByCode('ARS');
     if (!arsCurrency) {
@@ -142,103 +179,254 @@ export class CashRegisterService {
       arsCurrency._id.toString(),
       truncatedAmount,
       'set',
+      session,
     );
   }
 
   async closeDay(id: string | Types.ObjectId): Promise<CashRegister> {
-    const cashRegisterId =
-      id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
-    const cashRegister = await this.cashRegisterModel.findById(cashRegisterId);
-    if (!cashRegister) {
-      throw new NotFoundException(`La caja diaria con ID ${id} no existe`);
+    const session = await this.cashRegisterModel.db.startSession();
+
+    try {
+      return await session.withTransaction(async () => {
+        const cashRegisterId =
+          id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+
+        // Verificar si la caja existe y está abierta
+        const existingRegister = await this.cashRegisterModel
+          .findById(cashRegisterId)
+          .session(session);
+
+        if (!existingRegister) {
+          throw new NotFoundException(`La caja diaria con ID ${id} no existe`);
+        }
+
+        if (existingRegister.closing_balance !== null) {
+          console.log(existingRegister);
+
+          throw new ConflictException('Esta caja ya está cerrada');
+        }
+
+        // Obtener todas las transacciones del día
+        const transactions =
+          await this.transactionService.getTransactionsForDay(
+            existingRegister.sub_office.toString(),
+            existingRegister.date,
+          );
+
+        if (transactions.length === 0) {
+          throw new NotFoundException(
+            `No se encontraron transacciones para la sub-oficina ${existingRegister.sub_office} del día ${existingRegister.date}`,
+          );
+        }
+
+        // Obtener tasas de cambio
+        const exchangeRates =
+          await this.currencyService.getSubOfficeCurrenciesWithExchangeRate(
+            existingRegister.sub_office,
+          );
+
+        console.log(exchangeRates);
+
+        if (Object.keys(exchangeRates).length === 0) {
+          throw new NotFoundException(
+            `No se encontraron tasas de cambio para la sub-oficina ${existingRegister.sub_office}`,
+          );
+        }
+
+        // Calcular totales
+        const totals = this.calculateDailyTotals(transactions, exchangeRates);
+        console.log('Totales:', JSON.stringify(totals, null, 2));
+
+        // Calcular closing_balance considerando todos los tipos de operaciones
+        const closing_balance =
+          Number(existingRegister.opening_balance) +
+          Number(totals.total_income) -
+          Number(totals.total_expenses) +
+          Number(totals.check_income);
+        console.log('Closing balance:', closing_balance);
+
+        // Actualizar la caja con todos los totales
+        const updatedRegister = await this.cashRegisterModel.findByIdAndUpdate(
+          cashRegisterId,
+          {
+            $set: {
+              closing_balance: Number(closing_balance.toFixed(2)),
+              total_income: Number(totals.total_income.toFixed(2)),
+              total_expenses: Number(totals.total_expenses.toFixed(2)),
+              check_income: Number(totals.check_income.toFixed(2)),
+              difference: Number(
+                (closing_balance - existingRegister.opening_balance).toFixed(2),
+              ),
+            },
+          },
+          { new: true, runValidators: true, session },
+        );
+
+        if (!updatedRegister) {
+          throw new NotFoundException('No se pudo actualizar la caja');
+        }
+
+        /* // Actualizar el stock de ARS en la sub-oficina (analizar utilidad de esta parte)
+        await this.updateARSStock(
+          existingRegister.sub_office.toString(),
+          closing_balance,
+          session,
+        ); */
+
+        return updatedRegister;
+      });
+    } catch (error) {
+      throw new BadRequestException(
+        `Error al cerrar la caja: ${error.message}`,
+      );
+    } finally {
+      await session.endSession();
     }
-
-    // Obtener todas las transacciones del día para esta caja
-    const transactions = await this.transactionService.getTransactionsForDay(
-      cashRegister.sub_office,
-      cashRegister.date,
-    );
-
-    // Calcular total_income y total_expenses
-    let total_income = 0;
-    let total_expenses = 0;
-    for (const transaction of transactions) {
-      if (transaction.type === 'buy') {
-        total_expenses += transaction.targetAmount;
-      } else if (transaction.type === 'sell') {
-        total_income += transaction.sourceAmount;
-      }
-      // Para 'exchange', no afecta el balance de la caja en ARS
-    }
-
-    // Calcular closing_balance
-    const closing_balance =
-      cashRegister.opening_balance + total_income - total_expenses;
-
-    // Actualizar la caja
-    cashRegister.closing_balance = closing_balance;
-    cashRegister.total_income = total_income;
-    cashRegister.total_expenses = total_expenses;
-    cashRegister.difference = closing_balance - cashRegister.opening_balance;
-
-    // Actualizar el stock de ARS en la sub-oficina
-    await this.updateARSStock(
-      cashRegister.sub_office.toString(),
-      closing_balance,
-    );
-
-    return cashRegister.save();
   }
 
+  private calculateDailyTotals(
+    transactions: any[],
+    exchangeRatesArray: any[],
+  ): DailyTotals {
+    // Convertir el array de tasas de cambio a un objeto para fácil acceso
+    const exchangeRates = exchangeRatesArray.reduce((acc, curr) => {
+      acc[curr.code] = curr.exchangeRate;
+      return acc;
+    }, {});
+
+    console.log('Exchange rates mapped:', exchangeRates);
+
+    // Inicializar acumuladores con 0
+    const totals: DailyTotals = {
+      total_income: 0,
+      total_expenses: 0,
+      check_income: 0,
+    };
+
+    // Validar que haya transacciones
+    if (!transactions || transactions.length === 0) {
+      return totals;
+    }
+
+    return transactions.reduce((acc: DailyTotals, transaction) => {
+      // Validar que los valores numéricos existan y sean números
+      const sourceAmount = Number(transaction.sourceAmount) || 0;
+      const targetAmount = Number(transaction.targetAmount) || 0;
+      const sourceCurrency = transaction.sourceCurrencyCode;
+      const targetCurrency = transaction.targetCurrencyCode;
+
+      console.log(`Processing transaction:
+          Source amount: ${sourceAmount},
+          Source currency: ${sourceCurrency},
+          Target amount: ${targetAmount},
+          Target currency: ${targetCurrency},
+          Exchange rates available: ${JSON.stringify(exchangeRates)}`);
+
+      // Validar que las tasas de cambio existan
+      if (!exchangeRates[sourceCurrency] || !exchangeRates[targetCurrency]) {
+        console.warn(
+          `Missing exchange rate for ${sourceCurrency} or ${targetCurrency}`,
+        );
+        return acc;
+      }
+
+      // Convertir a USD
+      let amountInUSD = sourceAmount;
+      let targetAmountInUSD = targetAmount;
+
+      if (sourceCurrency !== 'USD') {
+        // Si la moneda fuente no es USD, primero convertimos a USD
+        amountInUSD = sourceAmount / exchangeRates[sourceCurrency];
+        console.log(
+          `Converting ${sourceAmount} ${sourceCurrency} to USD: ${amountInUSD}`,
+        );
+      }
+
+      if (targetCurrency !== 'USD') {
+        // Si la moneda destino no es USD, primero convertimos a USD
+        targetAmountInUSD = targetAmount / exchangeRates[targetCurrency];
+        console.log(
+          `Converting ${targetAmount} ${targetCurrency} to USD: ${targetAmountInUSD}`,
+        );
+      }
+
+      // Asegurarse de que los valores sean números válidos
+      amountInUSD = Number(amountInUSD) || 0;
+      targetAmountInUSD = Number(targetAmountInUSD) || 0;
+
+      switch (transaction.type) {
+        case 'buy':
+          acc.total_expenses =
+            Number(acc.total_expenses) + Number(targetAmountInUSD);
+          acc.total_income = Number(acc.total_income) + Number(amountInUSD);
+          console.log(`Buy operation - Updated totals:
+            Income: ${acc.total_income},
+            Expenses: ${acc.total_expenses}`);
+          break;
+
+        case 'sell':
+          acc.total_income =
+            Number(acc.total_income) + Number(targetAmountInUSD);
+          acc.total_expenses = Number(acc.total_expenses) + Number(amountInUSD);
+          console.log(`Sell operation - Updated totals:
+            Income: ${acc.total_income},
+            Expenses: ${acc.total_expenses}`);
+          break;
+
+        case 'check':
+          acc.check_income =
+            Number(acc.check_income) + Number(targetAmountInUSD);
+          console.log(
+            `Check operation - Updated check income: ${acc.check_income}`,
+          );
+          break;
+      }
+
+      // Asegurarse de que todos los totales sean números válidos
+      acc.total_income = Number(acc.total_income) || 0;
+      acc.total_expenses = Number(acc.total_expenses) || 0;
+      acc.check_income = Number(acc.check_income) || 0;
+
+      return acc;
+    }, totals);
+  }
   async updateCashRegister(
-    subOfficeId: string,
+    subOfficeId: Types.ObjectId | string,
     amount: number,
     session: any,
   ): Promise<void> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = this.truncateDate(new Date());
+    const tomorrow = this.getNextDay(today);
+    console.log(typeof subOfficeId);
+    const sub_office_id =
+      subOfficeId instanceof Types.ObjectId
+        ? subOfficeId
+        : new Types.ObjectId(subOfficeId);
 
-    let cashRegister = await this.cashRegisterModel
+    const cashRegister = await this.cashRegisterModel
       .findOne({
-        sub_office: new Types.ObjectId(subOfficeId),
-        date: today,
+        sub_office: subOfficeId,
+        date: {
+          $gte: this.truncateDate(today).toISOString(),
+          $lt: this.truncateDate(tomorrow).toISOString(),
+        },
       })
       .session(session);
 
     if (!cashRegister) {
-      // If no cash register exists for today, create a new one
-      cashRegister = new this.cashRegisterModel({
-        date: today,
-        opening_balance: 0,
-        sub_office: new Types.ObjectId(subOfficeId),
-      });
+      throw new BadRequestException('No hay caja abierta para el día de hoy');
     }
 
-    if (amount > 0) {
-      cashRegister.total_income += amount;
-    } else {
-      cashRegister.total_expenses += Math.abs(amount);
+    if (cashRegister.closing_balance !== null) {
+      throw new ConflictException('La caja ya está cerrada');
     }
-
-    // Update the closing balance
-    cashRegister.closing_balance =
-      cashRegister.opening_balance +
-      cashRegister.total_income -
-      cashRegister.total_expenses;
-
-    // Calculate the difference
-    cashRegister.difference =
-      cashRegister.closing_balance - cashRegister.opening_balance;
-
-    await cashRegister.save({ session });
   }
 
   async getCurrentCashRegisterForSubOffice(
     subOfficeId: string | Types.ObjectId,
   ): Promise<CashRegisterDocument | null> {
     const today = this.truncateDate(new Date());
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrow = this.getNextDay(today);
 
     return this.cashRegisterModel
       .findOne({
@@ -250,9 +438,22 @@ export class CashRegisterService {
       })
       .exec();
   }
+  async getCashRegisterByDate(dateStr: string): Promise<CashRegister> {
+    try {
+      const date = this.truncateDate(dateStr);
+      const nextDay = this.getNextDay(date);
 
-  async getCashRegisterByDate(date: string): Promise<CashRegister> {
-    return this.cashRegisterModel.findOne({ date });
+      return this.cashRegisterModel.findOne({
+        date: {
+          $gte: date,
+          $lt: nextDay,
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException(
+        'Formato de fecha inválido. Use YYYY-MM-DD',
+      );
+    }
   }
 
   async listAllCashRegisters(): Promise<CashRegister[]> {

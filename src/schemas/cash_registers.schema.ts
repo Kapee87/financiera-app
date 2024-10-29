@@ -12,35 +12,61 @@
  * @property {Number} closing_balance - Monto final de la caja
  * @property {Number} total_income - Monto total de ingresos
  * @property {Number} total_expenses - Monto total de egresos
+ * @property {Number} check_income - Monto total de ingresos por cheques
  * @property {Number} difference - Diferencia entre el monto final y el monto inicial
  * @property {ObjectId} sub_office - Suboficina a la que pertenece la caja
  */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, SchemaTypes, Types } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export type CashRegisterDocument = CashRegister & Document;
 
-@Schema()
+@Schema({ timestamps: true })
 export class CashRegister {
-  @Prop({ type: Date, required: true })
+  @Prop({
+    type: Date,
+    required: true,
+    set: (date: any) => {
+      if (typeof date === 'string') {
+        // Asegurarse de que la fecha string esté en formato ISO
+        return new Date(date + 'T00:00:00.000Z');
+      }
+      return date;
+    },
+    get: (date: Date) => {
+      if (date) {
+        return new Date(
+          Date.UTC(
+            date.getUTCFullYear(),
+            date.getUTCMonth(),
+            date.getUTCDate(),
+          ),
+        );
+      }
+      return date;
+    },
+  })
   date: Date;
 
-  @Prop({ type: Number, required: true })
+  @Prop({ required: true, type: Number })
   opening_balance: number;
 
-  @Prop({ type: Number, required: false, default: 0 })
+  @Prop({ type: Number, default: null })
   closing_balance: number;
 
-  @Prop({ type: Number, required: false, default: 0 })
+  @Prop({ type: Number, default: 0 })
   total_income: number;
 
-  @Prop({ type: Number, required: false, default: 0 })
+  @Prop({ type: Number, default: 0 })
   total_expenses: number;
 
-  @Prop({ type: Number, required: false })
+  @Prop({ type: Number, default: 0 })
+  check_income: number;
+
+  @Prop({ type: Number, default: 0 })
   difference: number;
 
-  @Prop({ type: SchemaTypes.ObjectId, ref: 'SubOffice', required: true })
+  @Prop({ required: true, type: Types.ObjectId, ref: 'SubOffice' })
   sub_office: Types.ObjectId;
 }
 

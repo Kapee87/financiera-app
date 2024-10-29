@@ -91,4 +91,20 @@ export class CurrencyController {
   delete(@Param('id') id: string | Types.ObjectId) {
     return this.currencyService.delete(id);
   }
+
+  /**
+   * Obtiene las monedas de un suboficina con su exchangeRate
+   *
+   * @param {string} subOfficeId - ID de la suboficina a obtener
+   *
+   * @returns {Promise<{code: string, exchangeRate: number}[]>} - Monedas de la suboficina con su exchangeRate
+   */
+  @Get('suboffice/:subOfficeId/exchangeRates')
+  async getSubOfficeCurrenciesWithExchangeRate(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+  ) {
+    return this.currencyService.getSubOfficeCurrenciesWithExchangeRate(
+      subOfficeId,
+    );
+  }
 }

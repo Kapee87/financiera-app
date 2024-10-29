@@ -9,17 +9,19 @@
  * @version 1.0.0
  * @since 2020-07-20
  */
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Currency, CurrencySchema } from 'src/schemas/currency.schema';
 import { CurrencyService } from './currency.service';
 import { CurrencyController } from './currency.controller';
+import { SubOfficeModule } from '../sub_office/sub_office.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Currency.name, schema: CurrencySchema },
     ]),
+    forwardRef(() => SubOfficeModule),
   ],
   controllers: [CurrencyController],
   providers: [CurrencyService],
