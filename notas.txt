@@ -1,81 +1,92 @@
-me revisas  a ver si esta bien esto(respuestas de consultas postman)?
-Stock inicial 
-1000 USD 
-1000000 ARS
-1000 EUR 
 
-transacciones:
-[
-    {
-        "_id": "6721281bdc70f28f68a4f977",
-        "user": "67082fa26acbb95ff05fa33e",
-        "userName": "Usuario no disponible",
-        "subOffice": "67100140bea6a3254822d58b",
-        "subOfficeName": "Sucursal Centro",
-        "sourceCurrency": "670ffe00336e11e195169025",
-        "sourceCurrencyCode": "ARS",
-        "targetCurrency": "670ffdf7336e11e195169023",
-        "targetCurrencyCode": "USD",
-        "sourceAmount": 20000,
-        "targetAmount": 20,
-        "exchangeRate": 1000,
-        "type": "buy",
-        "createdAt": "2024-10-29T18:23:23.022Z",
-        "updatedAt": "2024-10-29T18:23:23.022Z",
-        "__v": 0
-    },
-    {
-        "_id": "6721282cdc70f28f68a4f995",
-        "user": "67082fa26acbb95ff05fa33e",
-        "userName": "Usuario no disponible",
-        "subOffice": "67100140bea6a3254822d58b",
-        "subOfficeName": "Sucursal Centro",
-        "sourceCurrency": "670ffe00336e11e195169025",
-        "sourceCurrencyCode": "ARS",
-        "targetCurrency": "670ffdf7336e11e195169023",
-        "targetCurrencyCode": "USD",
-        "sourceAmount": 20000,
-        "targetAmount": 20,
-        "exchangeRate": 1000,
-        "type": "buy",
-        "createdAt": "2024-10-29T18:23:40.096Z",
-        "updatedAt": "2024-10-29T18:23:40.096Z",
-        "__v": 0
-    },
-    {
-        "_id": "67212857dc70f28f68a4f9b3",
-        "user": "67082fa26acbb95ff05fa33e",
-        "userName": "Usuario no disponible",
-        "subOffice": "67100140bea6a3254822d58b",
-        "subOfficeName": "Sucursal Centro",
-        "sourceCurrency": "670ffdf7336e11e195169023",
-        "sourceCurrencyCode": "USD",
-        "targetCurrency": "670ffe00336e11e195169025",
-        "targetCurrencyCode": "ARS",
-        "sourceAmount": 40,
-        "targetAmount": 36000,
-        "exchangeRate": 900,
-        "type": "sell",
-        "createdAt": "2024-10-29T18:24:23.776Z",
-        "updatedAt": "2024-10-29T18:24:23.776Z",
-        "__v": 0
-    }
-]
-
-caja:
-[
-    {
-        "_id": "67212810dc70f28f68a4f94d",
-        "date": "2024-10-29T03:00:00.000Z",
-        "opening_balance": 2587.69,
-        "closing_balance": 78507.69,
-        "total_income": 76000,
-        "total_expenses": 80,
-        "check_income": 0,
-        "difference": 75920,
-        "sub_office": "67100140bea6a3254822d58b",
-        "createdAt": "2024-10-29T18:23:12.469Z",
-        "updatedAt": "2024-10-29T18:24:57.736Z",
-        "__v": 0
-    }
-]
+Calculating opening balance for subOffice: 67100140bea6a3254822d58b 
+All currencies: [   
+    {     
+        "_id": "670ffdf7336e11e195169023",
+             "name": "Dólar estadounidense",
+             "code": "USD",
+             "exchangeRate": 1010,
+             "createdAt": "2024-10-16T17:55:03.036Z",
+             "updatedAt": "2024-10-31T14:12:45.865Z",
+             "__v": 0   },
+           {     "_id": "670ffe00336e11e195169025",
+             "name": "Peso Argentino",
+             "code": "ARS",
+             "exchangeRate": 1,
+             "createdAt": "2024-10-16T17:55:12.028Z",
+             "updatedAt": "2024-10-16T17:55:12.028Z",
+             "__v": 0   },
+           {     "_id": "670ffe03336e11e195169027",
+             "name": "Euros",
+             "code": "EUR",
+             "exchangeRate": 1064,
+             "createdAt": "2024-10-16T17:55:15.419Z",
+             "updatedAt": "2024-10-16T17:55:15.419Z",
+             "__v": 0   
+             }
+              ]
+ Processing currency: USD Stock for USD: 1000 ARS Rate for USD: 1010 Value in ARS for USD: 1010000 Running total ARS Value: 1010000 Processing currency: ARS Stock for ARS: 1000000 ARS Rate for ARS: 1 Value in ARS for ARS: 1000000 Running total ARS Value: 2010000 Processing currency: EUR Stock for EUR: 1000 ARS Rate for EUR: 1064 Value in ARS for EUR: 1064000 Running total ARS Value: 3074000 Final total ARS Value: 3074000 Final total USD Value: 3043.56 undefined 2024-11-01T03:00:00.000Z 
+ CreateTransactionDto {
+       user: '67082fa26acbb95ff05fa33e',
+           subOffice: '67100140bea6a3254822d58b',
+              sourceCurrency: '670ffdf7336e11e195169023',
+              targetCurrency: '670ffe00336e11e195169025',
+              amount: 10,
+              type: 'sell',
+              exchangeRate: 970 } CreateTransactionDto {   user: '67082fa26acbb95ff05fa33e',
+              subOffice: '67100140bea6a3254822d58b',
+              sourceCurrency: '670ffe00336e11e195169025',
+              targetCurrency: '670ffdf7336e11e195169023',
+              amount: 10,
+              type: 'buy',
+              exchangeRate: 1010 
+              }
+startOfDay 2024-11-01T03:00:00.000Z endOfDay 2024-11-02T02:59:59.999Z 
+[  
+     { code: 'USD', exchangeRate: 1010 },
+        { code: 'ARS', exchangeRate: 1 },
+        { code: 'EUR', exchangeRate: 1064 }
+         ]
+Exchange rates mapped: { USD: 1010, ARS: 1, EUR: 1064 } 
+Processing transaction:
+           Source amount: 9700,
+            Source currency: USD,
+            Target amount: 10,
+            Target currency: ARS,
+Exchange rates available: {"USD":1010,"ARS":1,"EUR":1064}
+ Conversion details:
+          Source: 9700 USD → 9797000 ARS → 9700 USD
+          Target: 10 ARS → 10 ARS → 0.009900990099009901 USD 
+Buy operation - Updated totals:             
+            Income: 9700,
+             Expenses: 0.009900990099009901 
+Processing transaction:
+           Source amount: 10,
+           Source currency: USD,
+           Target amount: 9700,
+           Target currency: ARS,
+Exchange rates available: {"USD":1010,"ARS":1,"EUR":1064} 
+Conversion details:
+         Source: 10 USD → 10100 ARS → 10 USD
+         Target: 9700 ARS → 9700 ARS → 9.603960396039604
+          USD Sell operation - Updated totals:             
+          Income: 9709.60396039604,             
+          Expenses: 10.009900990099009 
+Processing transaction:           
+           Source amount: 10100,
+           Source currency: ARS,
+           Target amount: 10,
+           Target currency: USD,
+Exchange rates available: {"USD":1010,"ARS":1,"EUR":1064} 
+Conversion details:
+         Source: 10100 ARS → 10100 ARS → 10 USD
+         Target: 10 USD → 10100 ARS → 10 USD 
+Buy operation - Updated totals:             
+            Income: 9719.60396039604,             
+            Expenses: 20.00990099009901 
+Totales: {   
+        "total_income": 9719.60396039604,
+        "total_expenses": 20.00990099009901,
+        "check_income": 0 
+        } 
+Closing balance: 12743.15405940594
