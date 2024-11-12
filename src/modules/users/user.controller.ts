@@ -93,12 +93,18 @@ export class UsersController {
     if (body.role === Roles.SuperAdmin) {
       throw new HttpException('No se puede crear un manager o superAdmin', 400);
     } else if (body.role === Roles.Admin) {
-      throw new HttpException('No se puede crear un adminastrador', 400);
+      throw new HttpException('No se puede crear un administrador', 400);
     }
 
     if (!Object.values(Roles).includes(body.role)) {
       throw new ConflictException('Rol no válido');
     }
+    /* 
+    -----------------generación de password genérico en stand by-----------------------------------
+    if (!body.password) {
+      const emailNamePart = body.email.split('@')[0];
+      body.password = emailNamePart + '123';
+    } */
 
     const newUser = this.usersService.createUser({ ...body, isActive: true });
     return newUser;

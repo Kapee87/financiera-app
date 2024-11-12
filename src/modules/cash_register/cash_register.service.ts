@@ -239,7 +239,90 @@ export class CashRegisterService {
       await session.endSession();
     }
   }
-  /* private calculateDailyTotals(
+
+  async updateCashRegister(
+    subOfficeId: Types.ObjectId | string,
+    amount: number,
+    session: any,
+  ): Promise<void> {
+    const today = this.truncateDate(new Date());
+    const tomorrow = this.getNextDay(today);
+    console.log(typeof subOfficeId);
+    const sub_office_id =
+      subOfficeId instanceof Types.ObjectId
+        ? subOfficeId
+        : new Types.ObjectId(subOfficeId);
+
+    const cashRegister = await this.cashRegisterModel
+      .findOne({
+        sub_office: subOfficeId,
+        date: {
+          $gte: this.truncateDate(today).toISOString(),
+          $lt: this.truncateDate(tomorrow).toISOString(),
+        },
+      })
+      .session(session);
+
+    if (!cashRegister) {
+      throw new BadRequestException('No hay caja abierta para el día de hoy');
+    }
+
+    if (cashRegister.closing_balance !== null) {
+      throw new ConflictException('La caja ya está cerrada');
+    }
+  }
+
+  async getCurrentCashRegisterForSubOffice(
+    subOfficeId: string | Types.ObjectId,
+  ): Promise<CashRegisterDocument | null> {
+    const today = this.truncateDate(new Date());
+    const tomorrow = this.getNextDay(today);
+
+    return this.cashRegisterModel
+      .findOne({
+        sub_office: subOfficeId,
+        date: {
+          $gte: today,
+          $lt: tomorrow,
+        },
+      })
+      .exec();
+  }
+  async getCashRegisterByDate(dateStr: string): Promise<CashRegister> {
+    try {
+      const date = this.truncateDate(dateStr);
+      const nextDay = this.getNextDay(date);
+
+      return this.cashRegisterModel.findOne({
+        date: {
+          $gte: date,
+          $lt: nextDay,
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException(
+        'Formato de fecha inválido. Use YYYY-MM-DD',
+      );
+    }
+  }
+
+  async listAllCashRegisters(): Promise<CashRegister[]> {
+    return this.cashRegisterModel.find();
+  }
+
+  // Método para desarrollo, usar con precaución
+  async deleteAllForDevelopment(): Promise<any> {
+    return this.cashRegisterModel.deleteMany();
+  }
+}
+
+/* 
+---------------------------------------------------------
+ESTE METODO SE MUDA A TRANSACTION Y MUTARA EN CONVENIENCIA.
+-----------------------------------------------------------
+
+
+ private calculateDailyTotals(
     transactions: any[],
     exchangeRatesArray: any[],
   ): DailyTotals {
@@ -333,78 +416,3 @@ export class CashRegisterService {
     }, totals);
   }
  */
-  async updateCashRegister(
-    subOfficeId: Types.ObjectId | string,
-    amount: number,
-    session: any,
-  ): Promise<void> {
-    const today = this.truncateDate(new Date());
-    const tomorrow = this.getNextDay(today);
-    console.log(typeof subOfficeId);
-    const sub_office_id =
-      subOfficeId instanceof Types.ObjectId
-        ? subOfficeId
-        : new Types.ObjectId(subOfficeId);
-
-    const cashRegister = await this.cashRegisterModel
-      .findOne({
-        sub_office: subOfficeId,
-        date: {
-          $gte: this.truncateDate(today).toISOString(),
-          $lt: this.truncateDate(tomorrow).toISOString(),
-        },
-      })
-      .session(session);
-
-    if (!cashRegister) {
-      throw new BadRequestException('No hay caja abierta para el día de hoy');
-    }
-
-    if (cashRegister.closing_balance !== null) {
-      throw new ConflictException('La caja ya está cerrada');
-    }
-  }
-
-  async getCurrentCashRegisterForSubOffice(
-    subOfficeId: string | Types.ObjectId,
-  ): Promise<CashRegisterDocument | null> {
-    const today = this.truncateDate(new Date());
-    const tomorrow = this.getNextDay(today);
-
-    return this.cashRegisterModel
-      .findOne({
-        sub_office: subOfficeId,
-        date: {
-          $gte: today,
-          $lt: tomorrow,
-        },
-      })
-      .exec();
-  }
-  async getCashRegisterByDate(dateStr: string): Promise<CashRegister> {
-    try {
-      const date = this.truncateDate(dateStr);
-      const nextDay = this.getNextDay(date);
-
-      return this.cashRegisterModel.findOne({
-        date: {
-          $gte: date,
-          $lt: nextDay,
-        },
-      });
-    } catch (error) {
-      throw new BadRequestException(
-        'Formato de fecha inválido. Use YYYY-MM-DD',
-      );
-    }
-  }
-
-  async listAllCashRegisters(): Promise<CashRegister[]> {
-    return this.cashRegisterModel.find();
-  }
-
-  // Método para desarrollo, usar con precaución
-  async deleteAllForDevelopment(): Promise<any> {
-    return this.cashRegisterModel.deleteMany();
-  }
-}

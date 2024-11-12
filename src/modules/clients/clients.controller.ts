@@ -44,4 +44,9 @@ export class ClientsController {
   remove(@Param('id') id: string | Types.ObjectId) {
     return this.clientsService.remove(id);
   }
+
+  @Delete()
+  removeAll(): string {
+    return this.clientsService.removeAll();
+  }
 }

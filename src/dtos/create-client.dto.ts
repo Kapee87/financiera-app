@@ -5,11 +5,14 @@
  * Contiene los datos necesarios para crear un nuevo cliente
  *
  * @property {string} name - Nombre del cliente
- * @property {string} email - Correo electrónico del cliente
- * @property {number} [phone] - Teléfono del cliente (opcional)
- * @property {string} address - Dirección del cliente
+ * @property {string} lastname - Apellido del cliente
+ * @property {number} [money] - Dinero que el cliente tiene en la cuenta (opcional)
+ * @property {number} [totalDebts] - Total de deudas del cliente (opcional)
+ * @property {number} [totalPayments] - Total de pagos del cliente (opcional)
+ * @property {string} [phone] - Teléfono del cliente (opcional)
+ * @property {string} [mail] - Correo electrónico del cliente (opcional)
  */
-import { IsString, IsNotEmpty, IsNumber } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
 
 export class CreateClientDto {
   /**
@@ -20,22 +23,44 @@ export class CreateClientDto {
   name: string;
 
   /**
-   * Correo electrónico del cliente
+   * Apellido del cliente
    */
   @IsString()
   @IsNotEmpty()
-  email: string;
+  lastname: string;
+
+  /**
+   * Dinero que el cliente tiene en la cuenta (opcional)
+   */
+  @IsNumber()
+  @IsOptional()
+  money?: number;
+
+  /**
+   * Total de deudas del cliente (opcional)
+   */
+  @IsNumber()
+  @IsOptional()
+  totalDebts?: number;
+
+  /**
+   * Total de pagos del cliente (opcional)
+   */
+  @IsNumber()
+  @IsOptional()
+  totalPayments?: number;
 
   /**
    * Teléfono del cliente (opcional)
    */
-  @IsNumber()
-  phone?: number;
+  @IsString()
+  @IsOptional()
+  phone?: string;
 
   /**
-   * Dirección del cliente
+   * Correo electrónico del cliente (opcional)
    */
   @IsString()
-  @IsNotEmpty()
-  address: string;
+  @IsOptional()
+  mail?: string;
 }

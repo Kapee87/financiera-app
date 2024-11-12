@@ -37,8 +37,17 @@ export class ClientsService {
       .exec();
   }
 
+  
+
   async remove(id: string | Types.ObjectId): Promise<void> {
     const clientId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
     await this.expenseModel.findByIdAndDelete(clientId).exec();
+  }
+
+  removeAll(): string {
+    try {
+      this.expenseModel.deleteMany({}).exec();
+      return 'Todos los clientes han sido eliminados';
+    } catch (error) {}
   }
 }

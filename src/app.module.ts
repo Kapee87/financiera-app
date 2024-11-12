@@ -15,8 +15,9 @@ import { OfficeModule } from './modules/office/office.module';
 import { CurrencyModule } from './modules/currency/currency.module';
 import { CashRegister } from './schemas/cash_registers.schema';
 import { SubOfficeModule } from './modules/sub_office/sub_office.module';
-import { ExpenseModule } from './modules/expense/expense.module';
+
 import { ClientsModule } from './modules/clients/clients.module';
+import { MovementModule } from './modules/movements/movements.module';
 
 @Module({
   imports: [
@@ -38,7 +39,7 @@ import { ClientsModule } from './modules/clients/clients.module';
     CurrencyModule,
     CashRegister,
     SubOfficeModule,
-    ExpenseModule,
+    MovementModule,
     ClientsModule,
   ],
   exports: [MongooseModule],
