@@ -110,8 +110,10 @@ export class TransactionController {
     @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
     @Param('date') date: Date,
   ) {
-    console.log('paso por controller');
 
     return this.transactionService.getTransactionsForDay(subOfficeId, date);
   }
+
+
+
 }

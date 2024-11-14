@@ -13,6 +13,7 @@
  * @property {string} mail - Correo electrónico del cliente
  */
 import { Prop } from '@nestjs/mongoose';
+import { SchemaTypes } from 'mongoose';
 
 export class UpdateClientDto {
   /**
@@ -26,6 +27,12 @@ export class UpdateClientDto {
    */
   @Prop({ required: true })
   lastname: string;
+
+  /**
+   * Nueva contraseña del cliente
+   */
+  @Prop()
+  password?: string;
 
   /**
    * Dinero que el cliente tiene en la cuenta
@@ -56,4 +63,22 @@ export class UpdateClientDto {
    */
   @Prop({ type: String, default: '' })
   mail?: string;
+
+  /**
+   * Transacciones realizadas por el cliente
+   */
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Transaction', default: [] })
+  transactions?: string[];
+
+  /**
+   * Movimientos de caja realizados por el cliente
+   */
+  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Movement', default: [] })
+  movements?: string[];
+
+  /**
+   * Observaciones del cliente
+   */
+  @Prop({ type: [String], default: [] })
+  observations?: string[];
 }

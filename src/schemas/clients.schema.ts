@@ -4,6 +4,7 @@
  *
  * Contiene la información de cada cliente de la empresa
  *
+ * @property {ObjectId} id - Identificador único del cliente
  * @property {string} name - Nombre del cliente
  * @property {string} lastname - Apellido del cliente
  * @property {number} money - Dinero que el cliente tiene en la cuenta
@@ -16,13 +17,21 @@
  * @property {string[]} observations - Observaciones del cliente
  */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { SchemaType, SchemaTypes } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
+export type ClientDocument = Client & Document;
+
+@Schema({
+  timestamps: true,
+})
 export class Client {
-  @Prop({ required: true })
+  @Prop({ type: Types.ObjectId })
+  id: string;
+
+  @Prop({ type: String, required: true })
   name: string;
 
-  @Prop({ required: true })
+  @Prop({ type: String, required: true })
   lastname: string;
 
   @Prop({ type: Number, default: 0 })
@@ -40,10 +49,10 @@ export class Client {
   @Prop({ type: String, default: '' })
   mail?: string;
 
-  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Transaction', default: [] })
+  @Prop({ type: [Types.ObjectId], ref: 'Transaction', default: [] })
   transactions?: string[];
 
-  @Prop({ type: [SchemaTypes.ObjectId], ref: 'Movement', default: [] })
+  @Prop({ type: [Types.ObjectId], ref: 'Movement', default: [] })
   movements?: string[];
 
   @Prop({ type: [String], default: [] })

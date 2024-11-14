@@ -144,7 +144,8 @@ export class SubOfficeService {
       const currentCurrencies = subOffice.currencies || [];
 
       for (const currencyData of sub_officeData.currencies) {
-        const currencyId = currencyData.currency;
+        const currencyId = currencyData.currency._id;
+        console.log(currencyId);
 
         if (Types.ObjectId.isValid(currencyId)) {
           try {
@@ -369,16 +370,25 @@ export class SubOfficeService {
       subOfficeId instanceof Types.ObjectId
         ? subOfficeId
         : new Types.ObjectId(subOfficeId);
+    const currencyObjectId =
+      currencyId instanceof Types.ObjectId
+        ? currencyId
+        : new Types.ObjectId(currencyId);
+
     const subOffice = await this.sub_officeModel.findById(subOfficeId);
+
     if (!subOffice) {
       throw new NotFoundException(
         `No se encontró la sucursal con ID ${subOfficeId}`,
       );
     }
 
-    const index = subOffice.currencies.findIndex(
-      (c) => c._id.toString() === currencyId,
-    );
+    const index = subOffice.currencies.findIndex((c) => {
+      console.log('c', c);
+      return c.currency._id.toString() === currencyId;
+    });
+    console.log('index', index);
+
     if (index > -1) {
       try {
         subOffice.currencies.splice(index, 1);

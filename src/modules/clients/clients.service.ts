@@ -1,21 +1,41 @@
 /* eslint-disable */
 /* eslint-disable */
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CreateClientDto } from 'src/dtos/create-client.dto';
 import { UpdateClientDto } from 'src/dtos/update-client.dto';
-import { Client } from 'src/schemas/clients.schema';
+import { Client, ClientDocument } from 'src/schemas/clients.schema';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class ClientsService {
   constructor(
-    @InjectModel(Client.name) private readonly expenseModel: Model<Client>,
+    @InjectModel(Client.name) private expenseModel: Model<ClientDocument>,
   ) {}
 
   async create(createClientsDto: CreateClientDto): Promise<Client> {
-    const createdClients = new this.expenseModel(createClientsDto);
-    return createdClients.save();
+    try {
+      const hashedPassword = await bcrypt.hash(createClientsDto.password, 10);
+      const createdClients = await this.expenseModel.create({
+        name: createClientsDto.name,
+        lastname: createClientsDto.lastname,
+        password: hashedPassword,
+        money: createClientsDto.money,
+        totalDebts: createClientsDto.totalDebts,
+        totalPayments: createClientsDto.totalPayments,
+        phone: createClientsDto.phone,
+        mail: createClientsDto.mail,
+        transactions: createClientsDto.transactions,
+        movements: createClientsDto.movements,
+        observations: createClientsDto.observations,
+      });
+      console.log(createdClients);
+
+      return createdClients;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   async findAll(): Promise<Client[]> {
@@ -29,15 +49,15 @@ export class ClientsService {
 
   async update(
     id: string | Types.ObjectId,
-    updateClientsDto: Partial<UpdateClientDto>,
+    updateClientDto: Partial<UpdateClientDto>,
   ): Promise<Client> {
     const clientId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+    console.log(updateClientDto);
+
     return this.expenseModel
-      .findByIdAndUpdate(clientId, updateClientsDto, { new: true })
+      .findByIdAndUpdate(clientId, updateClientDto, { new: true })
       .exec();
   }
-
-  
 
   async remove(id: string | Types.ObjectId): Promise<void> {
     const clientId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);

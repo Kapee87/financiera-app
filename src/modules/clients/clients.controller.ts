@@ -4,9 +4,10 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
+  Put,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateClientDto } from 'src/dtos/create-client.dto';
 import { UpdateClientDto } from 'src/dtos/update-client.dto';
@@ -19,6 +20,8 @@ export class ClientsController {
 
   @Post()
   create(@Body() createClientsDto: CreateClientDto) {
+    console.log(createClientsDto);
+
     return this.clientsService.create(createClientsDto);
   }
 
@@ -32,17 +35,26 @@ export class ClientsController {
     return this.clientsService.findOne(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   update(
     @Param('id') id: string | Types.ObjectId,
-    @Body() updateClientsDto: UpdateClientDto,
+    @Body() updateClientDto: Partial<UpdateClientDto>,
   ) {
-    return this.clientsService.update(id, updateClientsDto);
+    console.log(updateClientDto);
+
+    return this.clientsService.update(id, updateClientDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string | Types.ObjectId) {
-    return this.clientsService.remove(id);
+  async remove(@Param('id') id: string | Types.ObjectId) {
+    console.log('delete by id');
+
+    try {
+      const deletedClient = await this.clientsService.remove(id);
+      return 'Cliente eliminado exitosamente';
+    } catch (err) {
+      throw new NotFoundException(`Client with ID ${id} not found`);
+    }
   }
 
   @Delete()

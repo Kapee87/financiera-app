@@ -6,13 +6,23 @@
  *
  * @property {string} name - Nombre del cliente
  * @property {string} lastname - Apellido del cliente
+ * @property {string} password - Contrase a del cliente
  * @property {number} [money] - Dinero que el cliente tiene en la cuenta (opcional)
  * @property {number} [totalDebts] - Total de deudas del cliente (opcional)
  * @property {number} [totalPayments] - Total de pagos del cliente (opcional)
- * @property {string} [phone] - Teléfono del cliente (opcional)
- * @property {string} [mail] - Correo electrónico del cliente (opcional)
+ * @property {string} [phone] - Tel fono del cliente (opcional)
+ * @property {string} [mail] - Correo electr nico del cliente (opcional)
+ * @property {string[]} [transactions] - Transacciones realizadas por el cliente (opcional)
+ * @property {string[]} [movements] - Movimientos de caja realizados por el cliente (opcional)
+ * @property {string[]} [observations] - Observaciones del cliente (opcional)
  */
-import { IsString, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsArray,
+} from 'class-validator';
 
 export class CreateClientDto {
   /**
@@ -28,6 +38,13 @@ export class CreateClientDto {
   @IsString()
   @IsNotEmpty()
   lastname: string;
+
+  /**
+   * Contrase a del cliente
+   */
+  @IsString()
+  @IsNotEmpty()
+  password: string;
 
   /**
    * Dinero que el cliente tiene en la cuenta (opcional)
@@ -51,16 +68,37 @@ export class CreateClientDto {
   totalPayments?: number;
 
   /**
-   * Teléfono del cliente (opcional)
+   * Tel fono del cliente (opcional)
    */
   @IsString()
   @IsOptional()
   phone?: string;
 
   /**
-   * Correo electrónico del cliente (opcional)
+   * Correo electr nico del cliente (opcional)
    */
   @IsString()
   @IsOptional()
   mail?: string;
+
+  /**
+   * Transacciones realizadas por el cliente (opcional)
+   */
+  @IsArray()
+  @IsOptional()
+  transactions?: string[];
+
+  /**
+   * Movimientos de caja realizados por el cliente (opcional)
+   */
+  @IsArray()
+  @IsOptional()
+  movements?: string[];
+
+  /**
+   * Observaciones del cliente (opcional)
+   */
+  @IsArray()
+  @IsOptional()
+  observations?: string[];
 }
