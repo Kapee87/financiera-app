@@ -11,6 +11,7 @@
  * @property {String} category - Tipo de movimiento (ingreso o egreso)
  * @property {String} type - Tipo de movimiento (tipo de movimiento mas detallado)
  * @property {ObjectId} user - usuario que realizó el movimiento
+ * @property {ObjectId} currency - Moneda en la que se realizó el movimiento
  */
 import { IsMongoId, IsNotEmpty, IsEnum, IsNumber } from 'class-validator';
 
@@ -36,4 +37,8 @@ export class CreateMovementDto {
   @IsMongoId()
   @IsNotEmpty()
   user: string;
+
+  @IsMongoId()
+  @IsNotEmpty()
+  currency: string;
 }

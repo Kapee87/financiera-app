@@ -9,8 +9,10 @@
  * @property {Number} amount - Monto del movimiento
  * @property {String} description - Descripción del movimiento
  * @property {String} type - Tipo de movimiento (ingreso, egreso, etc.)
- * @property {ObjectId} account - Cuenta en la que se realizó el movimiento
+ * @property {ObjectId} user - Usuario que realizó el movimiento
  * @property {ObjectId} sub_office - Sucursal en la que se realizó el movimiento
+ * @property {ObjectId} currency - Moneda en la que se realizó el movimiento
+ * 
  */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
@@ -48,6 +50,9 @@ export class Movement {
 
   @Prop({ type: Types.ObjectId, ref: 'SubOffice', required: true })
   sub_office: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'Currency', required: true })
+  currency: string;
 }
 
 export const MovementSchema = SchemaFactory.createForClass(Movement);
