@@ -6,6 +6,7 @@ import { CreateMovementDto } from 'src/dtos/create-movement.dto';
 import { Movement, MovementDocument } from 'src/schemas/movement.schema';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { SubOfficeService } from '../sub_office/sub_office.service';
+import { CashRegisterService } from '../cash_register/cash_register.service';
 
 @Injectable()
 export class MovementService {
@@ -13,10 +14,17 @@ export class MovementService {
     @InjectModel(Movement.name) private expenseModel: Model<MovementDocument>,
     @InjectConnection() private connection: Connection,
     private subOfficeService: SubOfficeService,
-    private curencyService: SubOfficeService,
+    private cashService: CashRegisterService,
   ) {}
 
   async create(createMovementDto: CreateMovementDto): Promise<Movement> {
+    const isCashRegisterOpen = await this.cashService.isCashRegisterOpen(
+      createMovementDto.subOffice,
+    );
+    if (!isCashRegisterOpen) {
+      throw new BadRequestException('La caja no esta abierta');
+    }
+
     const session = await this.connection.startSession();
     try {
       const createdMovement = await session.withTransaction(async () => {
@@ -28,7 +36,6 @@ export class MovementService {
           createMovementDto.type,
           session,
         );
-
         // Crear el movimiento
         return await this.expenseModel.create({
           date: new Date(),
@@ -108,7 +115,7 @@ export class MovementService {
 
   async update(
     id: string,
-    updateMovementDto: Partial<CreateMovementDto>,
+    updateMovementDto: Partial<Pick<CreateMovementDto, 'description'>>,
   ): Promise<Movement> {
     const session = await this.connection.startSession();
     try {
@@ -119,25 +126,6 @@ export class MovementService {
             `No se encontró el movimiento con id ${id}`,
           );
         }
-
-        // Restar/sumar el monto anterior al stock
-        await this.updateStock(
-          movement.sub_office,
-          movement.currency,
-          movement.amount,
-          movement.type === 'ingreso' ? 'decrease' : 'increase',
-          session,
-        );
-
-        // Sumar/restar el monto nuevo al stock
-        await this.updateStock(
-          updateMovementDto.subOffice || movement.sub_office,
-          updateMovementDto.currency || movement.currency,
-          updateMovementDto.amount || movement.amount,
-          updateMovementDto.type === 'ingreso' ? 'increase' : 'decrease',
-          session,
-        );
-
         // Actualizar el movimiento
         return await this.expenseModel
           .findByIdAndUpdate(id, updateMovementDto, { new: true })
@@ -150,12 +138,50 @@ export class MovementService {
       await session.endSession();
     }
   }
-
   async remove(id: string): Promise<void> {
+    const session = await this.connection.startSession();
     try {
-      await this.expenseModel.findByIdAndDelete(id).exec();
+      const movement = await this.expenseModel.findById(id).exec();
+      if (!movement) {
+        throw new Error(`No se encontró el movimiento con id ${id}`);
+      }
+
+      const isCashRegisterOpen = await this.cashService.isCashRegisterOpen(
+        movement.sub_office,
+      );
+      console.log(isCashRegisterOpen);
+
+      await session.withTransaction(async () => {
+        if (
+          isCashRegisterOpen &&
+          movement.date.toDateString() === new Date().toDateString()
+        ) {
+          // Restar o sumar el stock de la currency en la suboficina
+          if (movement.type === 'ingreso') {
+            await this.subOfficeService.updateCurrencyStock(
+              movement.sub_office,
+              movement.currency,
+              movement.amount,
+              'decrease',
+              session,
+            );
+          } else if (movement.type === 'egreso') {
+            await this.subOfficeService.updateCurrencyStock(
+              movement.sub_office,
+              movement.currency,
+              movement.amount,
+              'increase',
+              session,
+            );
+          }
+        }
+        // Eliminar el movimiento
+        await this.expenseModel.findByIdAndDelete(id).exec();
+      });
     } catch (error) {
-      throw new NotFoundException(error.message);
+      throw new BadRequestException(error.message);
+    } finally {
+      await session.endSession();
     }
   }
   async removeAll() {

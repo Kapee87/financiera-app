@@ -7,6 +7,7 @@ import {
   Patch,
   Param,
   Delete,
+  BadRequestException,
 } from '@nestjs/common';
 
 import { CreateMovementDto } from 'src/dtos/create-movement.dto';
@@ -48,12 +49,22 @@ export class MovementController {
     @Param('id') id: string,
     @Body() updateMovementDto: UpdateMovementDto,
   ) {
+    if (updateMovementDto.amount || updateMovementDto.type) {
+      throw new BadRequestException(
+        'No se pueden actualizar los campos amount y type, en su lugar elimine el movimiento y cree uno nuevo',
+      );
+    }
     return this.movementService.update(id, updateMovementDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.movementService.remove(id);
+  async remove(@Param('id') id: string) {
+    try {
+      const deletedMovement = await this.movementService.remove(id);
+      return 'Movimiento eliminado exitosamente';
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   @Delete()

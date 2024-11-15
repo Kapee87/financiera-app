@@ -163,26 +163,6 @@ export class CashRegisterService {
     return truncatedUSDValue;
   }
 
-  /*   private async updateARSStock(
-    subOfficeId: string,
-    amount: number,
-    session: any,
-  ): Promise<void> {
-    const arsCurrency = await this.currencyService.findByCode('ARS');
-    if (!arsCurrency) {
-      throw new NotFoundException('No se encontró la moneda ARS');
-    }
-
-    const truncatedAmount = Number(amount.toFixed(2));
-    await this.subOfficeService.updateCurrencyStock(
-      subOfficeId,
-      arsCurrency._id.toString(),
-      truncatedAmount,
-      'set',
-      session,
-    );
-  } */
-
   async closeDay(id: string | Types.ObjectId): Promise<CashRegister> {
     const session = await this.cashRegisterModel.db.startSession();
 
@@ -313,6 +293,27 @@ export class CashRegisterService {
   // Método para desarrollo, usar con precaución
   async deleteAllForDevelopment(): Promise<any> {
     return this.cashRegisterModel.deleteMany();
+  }
+
+  async isCashRegisterOpen(subOfficeId: string): Promise<boolean> {
+    const today = this.truncateDate(new Date());
+    const tomorrow = this.getNextDay(today);
+
+    try {
+      const cashRegister = await this.cashRegisterModel.findOne({
+        sub_office: subOfficeId,
+        date: {
+          $gte: today,
+          $lt: tomorrow,
+        },
+      });
+
+      return cashRegister !== null && cashRegister.closing_balance === null;
+    } catch (error) {
+      throw new BadRequestException(
+        `Error al verificar si la caja está abierta: ${error.message}`,
+      );
+    }
   }
 }
 
