@@ -7,12 +7,16 @@ import {
   Param,
   Body,
   Delete,
+  BadRequestException,
 } from '@nestjs/common';
 
 import { CreateCashRegisterDto } from '../../dtos/create-cash-register.dto';
 import { UpdateCashRegisterDto } from '../../dtos/update-cash-register.dto';
 import { CashRegisterService } from './cash_register.service';
-import { CashRegister } from 'src/schemas/cash_registers.schema';
+import {
+  CashRegister,
+  CashRegisterDocument,
+} from 'src/schemas/cash_registers.schema';
 import { Types } from 'mongoose';
 
 @Controller('cash-register')
@@ -39,6 +43,26 @@ export class CashRegisterController {
   @Get()
   listAllCashRegisters(): Promise<CashRegister[]> {
     return this.cashRegisterService.listAllCashRegisters();
+  }
+
+  @Get('current/:subOfficeId')
+  async getCurrentCashRegisterForSubOffice(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+  ): Promise<CashRegisterDocument | null> {
+    try {
+      const cashRegister =
+        await this.cashRegisterService.getCurrentCashRegisterForSubOffice(
+          subOfficeId,
+        );
+      if (!cashRegister) {
+        throw new BadRequestException('No hay caja abierta para el dia de hoy');
+      }
+      console.log(cashRegister);
+
+      return cashRegister;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
   @Delete()
   deleteAllForDevelopment(): Promise<any> {
