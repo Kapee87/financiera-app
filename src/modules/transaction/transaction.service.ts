@@ -199,14 +199,6 @@ export class TransactionService {
           );
         }
 
-        /*  await this.handleCashRegister(
-          subOffice,
-          type,
-          sourceAmount,
-          targetAmount,
-          session,
-        ); */
-
         const transaction = new this.transactionModel({
           ...createTransactionDto,
           userName: userData.username,
@@ -537,6 +529,59 @@ export class TransactionService {
         'Error al obtener las transacciones',
       );
     }
+  }
+  async getTransactionsForMonth(
+    subOfficeId: string | Types.ObjectId,
+    date: Date,
+  ): Promise<Transaction[]> {
+    if (!Types.ObjectId.isValid(subOfficeId)) {
+      throw new BadRequestException('El ID de la sub-oficina no es válido');
+    }
+    const startOfMonth = new Date(date.getUTCFullYear(), date.getUTCMonth(), 1);
+    const endOfMonth = new Date(
+      date.getUTCFullYear(),
+      date.getUTCMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
+    try {
+      return await this.transactionModel
+        .find({
+          subOffice: subOfficeId,
+          createdAt: {
+            $gte: startOfMonth,
+            $lte: endOfMonth,
+          },
+        })
+        .lean()
+        .exec();
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error al obtener las transacciones',
+      );
+    }
+  }
+
+  async getSalesAndChecksForDay(
+    subOfficeId: string | Types.ObjectId,
+    date: Date,
+  ): Promise<Transaction[]> {
+    const transactions = await this.getTransactionsForDay(subOfficeId, date);
+    return transactions.filter(
+      (transaction) =>
+        transaction.type === 'sell' || transaction.type === 'check',
+    );
+  }
+
+  async getPurchasesForDay(
+    subOfficeId: string | Types.ObjectId,
+    date: Date,
+  ): Promise<Transaction[]> {
+    const transactions = await this.getTransactionsForDay(subOfficeId, date);
+    return transactions.filter((transaction) => transaction.type === 'buy');
   }
 
   // Método para desarrollo, usar con precaución

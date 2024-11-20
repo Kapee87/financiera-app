@@ -68,6 +68,15 @@ export class CashRegister {
 
   @Prop({ required: true, type: Types.ObjectId, ref: 'SubOffice' })
   sub_office: Types.ObjectId;
+
+  @Prop({
+    type: {
+      usd: Number,
+      ars: Number,
+    },
+    default: null,
+  })
+  rates: { usd: number; ars: number };
 }
 
 export const CashRegisterSchema = SchemaFactory.createForClass(CashRegister);

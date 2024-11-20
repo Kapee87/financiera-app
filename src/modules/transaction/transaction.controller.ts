@@ -17,6 +17,7 @@ import {
   Param,
   Body,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 
@@ -110,10 +111,35 @@ export class TransactionController {
     @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
     @Param('date') date: Date,
   ) {
-
     return this.transactionService.getTransactionsForDay(subOfficeId, date);
   }
-
-
-
+  @Get(':subOfficeId/forMonth/:date')
+  getTransactionsForMonth(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Param('date') date: Date,
+  ) {
+    return this.transactionService.getTransactionsForMonth(subOfficeId, date);
+  }
+  @Get(':subOfficeId/TotalSalesForDay/:date')
+  getTotalSalesForDay(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Param('date') date: Date,
+  ) {
+    try {
+      return this.transactionService.getSalesAndChecksForDay(subOfficeId, date);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+  @Get(':subOfficeId/totalPurchasesForDay/:date')
+  getTotalPurchasesForDay(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Param('date') date: Date,
+  ) {
+    try {
+      return this.transactionService.getSalesAndChecksForDay(subOfficeId, date);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
 }

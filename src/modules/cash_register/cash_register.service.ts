@@ -17,6 +17,12 @@ import { CreateCashRegisterDto } from 'src/dtos/create-cash-register.dto';
 import { CurrencyService } from '../currency/currency.service';
 import { SubOfficeService } from '../sub_office/sub_office.service';
 import { TransactionService } from '../transaction/transaction.service';
+import { CloseCashRegisterDto } from 'src/dtos/close-cash-register.dto';
+import {
+  Transaction,
+  TransactionDocument,
+} from 'src/schemas/transaction.schema';
+import { Movement, MovementDocument } from 'src/schemas/movement.schema';
 
 interface DailyTotals {
   total_income: number;
@@ -29,10 +35,16 @@ export class CashRegisterService {
   constructor(
     @InjectModel(CashRegister.name)
     private cashRegisterModel: Model<CashRegisterDocument>,
-    private currencyService: CurrencyService,
-    private subOfficeService: SubOfficeService,
+    @InjectModel(Transaction.name)
+    private transactionModel: Model<TransactionDocument>,
+    @InjectModel(Movement.name)
+    private movementModel: Model<MovementDocument>,
+
     @Inject(forwardRef(() => TransactionService))
     private transactionService: TransactionService,
+
+    private currencyService: CurrencyService,
+    private subOfficeService: SubOfficeService,
   ) {}
 
   private truncateDate(date: Date | string): Date {
@@ -81,15 +93,9 @@ export class CashRegisterService {
         }
       }
 
-      const opening_balance = await this.calculateOpeningBalance(
-        createCashRegisterDto.sub_office,
-      );
-      console.log(createCashRegisterDto.date, registerDate);
-
       const cashRegister = new this.cashRegisterModel({
         ...createCashRegisterDto,
         date: registerDate,
-        opening_balance,
         closing_balance: null,
         total_income: 0,
         total_expenses: 0,
@@ -111,59 +117,111 @@ export class CashRegisterService {
     }
   }
 
-  private async calculateOpeningBalance(
+  private async calculateDailyTransactions(
     subOfficeId: string | Types.ObjectId,
-  ): Promise<number> {
-    console.log(`Calculating opening balance for subOffice: ${subOfficeId}`);
+    date: Date,
+    usdRate: number,
+    arsRate: number,
+  ): Promise<{
+    total_income: number;
+    total_expenses: number;
+    check_income: number;
+  }> {
+    const nextDay = this.getNextDay(date);
 
-    const currencies = await this.currencyService.findAll();
-    console.log('All currencies:', JSON.stringify(currencies, null, 2));
+    const transactions = await this.transactionModel.find({
+      subOffice: subOfficeId,
+      createdAt: {
+        $gte: date,
+        $lt: nextDay,
+      },
+    });
 
-    let totalARSValue = 0;
-    const BASE_CURRENCY = 'ARS';
-    const USD_CURRENCY = 'USD';
+    const totals = {
+      total_income: 0,
+      total_expenses: 0,
+      check_income: 0,
+    };
 
-    for (const currency of currencies) {
-      console.log(`Processing currency: ${currency.code}`);
+    for (const transaction of transactions) {
+      // Convertir montos a USD según la moneda
+      let sourceAmountUSD = transaction.sourceAmount;
+      let targetAmountUSD = transaction.targetAmount;
 
-      const stock = await this.subOfficeService.getCurrencyStock(
-        subOfficeId,
-        currency._id,
-      );
-      console.log(`Stock for ${currency.code}: ${stock}`);
-
-      let arsRate;
-      if (currency.code === BASE_CURRENCY) {
-        arsRate = 1;
-      } else {
-        // Convertimos todas las monedas a ARS
-        arsRate = currency.exchangeRate;
+      // Convertir montos según la moneda
+      if (transaction.sourceCurrencyCode === 'ARS') {
+        sourceAmountUSD = transaction.sourceAmount / arsRate;
       }
-      console.log(`ARS Rate for ${currency.code}: ${arsRate}`);
+      if (transaction.targetCurrencyCode === 'ARS') {
+        targetAmountUSD = transaction.targetAmount / arsRate;
+      }
 
-      const currencyValueInARS = stock * arsRate;
-      console.log(`Value in ARS for ${currency.code}: ${currencyValueInARS}`);
-
-      totalARSValue += currencyValueInARS;
-      console.log(`Running total ARS Value: ${totalARSValue}`);
+      switch (transaction.type) {
+        case 'buy':
+          totals.total_expenses += sourceAmountUSD;
+          totals.total_income += targetAmountUSD;
+          break;
+        case 'sell':
+          totals.total_income += sourceAmountUSD;
+          totals.total_expenses += targetAmountUSD;
+          break;
+        case 'check':
+          totals.check_income += targetAmountUSD;
+          break;
+      }
     }
 
-    console.log(`Final total ARS Value: ${totalARSValue}`);
-
-    // Convertir el total de ARS a USD
-    const usdCurrency = currencies.find((c) => c.code === USD_CURRENCY);
-    if (!usdCurrency) {
-      throw new Error('USD currency not found');
-    }
-    const usdRate = usdCurrency.exchangeRate;
-    const totalUSDValue = totalARSValue / usdRate;
-
-    const truncatedUSDValue = Number(totalUSDValue.toFixed(2));
-    console.log(`Final total USD Value: ${truncatedUSDValue}`);
-    return truncatedUSDValue;
+    return totals;
   }
 
-  async closeDay(id: string | Types.ObjectId): Promise<CashRegister> {
+  private async calculateDailyMovements(
+    subOfficeId: string | Types.ObjectId,
+    date: Date,
+    usdRate: number,
+    arsRate: number,
+  ): Promise<{
+    movement_income: number;
+    movement_expenses: number;
+  }> {
+    const nextDay = this.getNextDay(date);
+
+    const movements = await this.movementModel
+      .find({
+        sub_office: subOfficeId,
+        date: {
+          $gte: date,
+          $lt: nextDay,
+        },
+      })
+      .populate('currency');
+
+    const totals = {
+      movement_income: 0,
+      movement_expenses: 0,
+    };
+
+    for (const movement of movements) {
+      let amountUSD = movement.amount;
+      let currency = await this.currencyService.findOne(movement.currency);
+      // Convertir a USD según la moneda del movimiento
+      if (currency.code === 'ARS') {
+        amountUSD = movement.amount / arsRate;
+      }
+
+      if (movement.category === 'ingreso') {
+        totals.movement_income += amountUSD;
+      } else if (movement.category === 'egreso') {
+        totals.movement_expenses += amountUSD;
+      }
+    }
+
+    return totals;
+  }
+
+  async closeDay(
+    id: string | Types.ObjectId,
+    closeCashREgisterDto: CloseCashRegisterDto,
+  ): Promise<CashRegister> {
     const session = await this.cashRegisterModel.db.startSession();
 
     try {
@@ -185,21 +243,23 @@ export class CashRegisterService {
         }
 
         // Calcular el cierre de caja a partir del saldo de apertura
-        const closingBalance = await this.calculateOpeningBalance(
-          existingRegister.sub_office,
-        );
-        const difference = closingBalance - existingRegister.opening_balance;
+        const { closing_balance, usd_rate, ars_rate } = closeCashREgisterDto;
+        const difference = closing_balance - existingRegister.opening_balance;
 
         // Actualizar la caja con los nuevos valores
         const updatedRegister = await this.cashRegisterModel.findByIdAndUpdate(
           cashRegisterId,
           {
             $set: {
-              closing_balance: Number(closingBalance.toFixed(2)),
+              closing_balance: Number(closing_balance.toFixed(2)),
               total_income: 0,
               total_expenses: 0,
               check_income: 0,
               difference: Number(difference.toFixed(2)),
+              rates: {
+                usd: Number(usd_rate.toFixed(2)),
+                ars: Number(ars_rate.toFixed(2)),
+              },
             },
           },
           { new: true, runValidators: true, session },
@@ -415,5 +475,58 @@ ESTE METODO SE MUDA A TRANSACTION Y MUTARA EN CONVENIENCIA.
 
       return acc;
     }, totals);
+  }
+
+
+  private async calculateDailyTansactions(
+    subOfficeId: string | Types.ObjectId,
+  ): Promise<number> {
+    console.log(`Calculating opening balance for subOffice: ${subOfficeId}`);
+
+    const currencies = await this.currencyService.findAll();
+    console.log('All currencies:', JSON.stringify(currencies, null, 2));
+
+    let totalARSValue = 0;
+    const BASE_CURRENCY = 'ARS';
+    const USD_CURRENCY = 'USD';
+
+    for (const currency of currencies) {
+      console.log(`Processing currency: ${currency.code}`);
+
+      const stock = await this.subOfficeService.getCurrencyStock(
+        subOfficeId,
+        currency._id,
+      );
+      console.log(`Stock for ${currency.code}: ${stock}`);
+
+      let arsRate;
+      if (currency.code === BASE_CURRENCY) {
+        arsRate = 1;
+      } else {
+        // Convertimos todas las monedas a ARS
+        arsRate = currency.exchangeRate;
+      }
+      console.log(`ARS Rate for ${currency.code}: ${arsRate}`);
+
+      const currencyValueInARS = stock * arsRate;
+      console.log(`Value in ARS for ${currency.code}: ${currencyValueInARS}`);
+
+      totalARSValue += currencyValueInARS;
+      console.log(`Running total ARS Value: ${totalARSValue}`);
+    }
+
+    console.log(`Final total ARS Value: ${totalARSValue}`);
+
+    // Convertir el total de ARS a USD
+    const usdCurrency = currencies.find((c) => c.code === USD_CURRENCY);
+    if (!usdCurrency) {
+      throw new Error('USD currency not found');
+    }
+    const usdRate = usdCurrency.exchangeRate;
+    const totalUSDValue = totalARSValue / usdRate;
+
+    const truncatedUSDValue = Number(totalUSDValue.toFixed(2));
+    console.log(`Final total USD Value: ${truncatedUSDValue}`);
+    return truncatedUSDValue;
   }
  */

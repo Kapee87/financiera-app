@@ -23,10 +23,9 @@ export class CreateCashRegisterDto {
   /**
    * Monto inicial de la caja de dinero
    */
-  @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  opening_balance?: number;
+  opening_balance: number;
 
   /**
    * Suboficina a la que pertenece la caja de dinero
