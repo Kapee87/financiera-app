@@ -112,7 +112,14 @@ export class SubOfficeService {
   async findOne(id: string | Types.ObjectId): Promise<SubOffice> {
     const subOfficeId =
       id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
-    const subOffice = await this.sub_officeModel.findById(subOfficeId).exec();
+    const subOffice = await this.sub_officeModel
+      .findById(subOfficeId)
+      .populate({
+        path: 'currencies.currency',
+        model: 'Currency',
+        select: 'name _id code exchangeRate updatedAt',
+      })
+      .exec();
     if (!subOffice) {
       throw new NotFoundException(`No se encontró la sucursal con ID ${id}`);
     }

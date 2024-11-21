@@ -23,6 +23,7 @@ import {
   TransactionDocument,
 } from 'src/schemas/transaction.schema';
 import { Movement, MovementDocument } from 'src/schemas/movement.schema';
+import { SubOffice } from 'src/schemas/sub_office.schema';
 
 interface CurrencyTotals {
   totalIncomeUSD: number;
@@ -226,11 +227,33 @@ export class CashRegisterService {
     };
   }
 
-  async calculateClosingBalance(
+  async calculateCurrentStockTotal(
     subOfficeId: string | Types.ObjectId,
+    usd_rate: number,
   ): Promise<number> {
-    const register = await this.getCurrentCashRegisterForSubOffice(subOfficeId);
-    return register.closing_balance || 0;
+    const subOffice = await this.subOfficeService.findOne(subOfficeId);
+
+    if (!subOffice) {
+      throw new NotFoundException('Sub-oficina no encontrada');
+    }
+    let totalStockUSD = 0;
+    for (const currencyStock of subOffice.currencies) {
+      const currency = await this.currencyService.findOne(
+        currencyStock.currency,
+      );
+
+      // Primero convertir a ARS
+      const amountInARS = currencyStock.stock * currency.exchangeRate;
+
+      // Luego convertir de ARS a USD
+      const amountInUSD = amountInARS / usd_rate;
+      console.log(amountInARS);
+      console.log(amountInUSD);
+      console.log(usd_rate);
+
+      totalStockUSD += amountInUSD;
+    }
+    return Number(totalStockUSD.toFixed(2)) || 0;
   }
 
   async closeDay(
@@ -261,31 +284,12 @@ export class CashRegisterService {
         let newClosingBalance = 0;
         if (!closeCashRegisterDto.closing_balance) {
           try {
-            const subOffice = await this.subOfficeService.findOne(
-              register.sub_office,
+            newClosingBalance = Number(
+              await this.calculateCurrentStockTotal(
+                register.sub_office,
+                closeCashRegisterDto.usd_rate,
+              ),
             );
-
-            if (!subOffice) {
-              throw new NotFoundException('Sub-oficina no encontrada');
-            }
-
-            let totalStockUSD = 0;
-            for (const currencyStock of subOffice.currencies) {
-              const currency = await this.currencyService.findOne(
-                currencyStock.currency,
-              );
-              const { usd_rate } = closeCashRegisterDto;
-
-              // Primero convertir a ARS
-              const amountInARS = currencyStock.stock * currency.exchangeRate;
-
-              // Luego convertir de ARS a USD
-              const amountInUSD = amountInARS / usd_rate;
-
-              totalStockUSD += amountInUSD;
-            }
-
-            newClosingBalance = Number(totalStockUSD.toFixed(2));
           } catch (error) {
             throw new BadRequestException(
               `Error calculando saldo de cierre: ${error.message}`,

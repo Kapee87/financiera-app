@@ -20,6 +20,7 @@ import {
 import { CurrencyService } from './currency.service';
 import { Currency } from 'src/schemas/currency.schema';
 import { Types } from 'mongoose';
+import { UpdateManyCurrenciesDto } from 'src/dtos/update-many-currencies.dto';
 
 @Controller('currencies')
 export class CurrencyController {
@@ -65,6 +66,28 @@ export class CurrencyController {
   }
 
   /**
+   * Actualiza varios campos de varias monedas
+   *
+   * @param {{ [currencyId: string]: Partial<Currency> }} currencyData
+   *        Un objeto con los IDs de las monedas como clave y el objeto
+   *        con los datos a actualizar como valor
+   *
+   * @returns {Promise<{ success: boolean, updatedCurrencies: string[], errors: string[] }>}
+   *          Un objeto que indica el éxito de la operación, las monedas actualizadas,
+   *          y los errores encontrados
+   */
+  @Put('multiple')
+  async updateMultipleCurrencies(
+    @Body() updateManyCurrenciesDto: UpdateManyCurrenciesDto,
+  ) {
+    console.log('paso por controller');
+
+    return this.currencyService.updateManyCurrencies(
+      updateManyCurrenciesDto.updates,
+    );
+  }
+
+  /**
    * Actualiza una moneda
    *
    * @param {string} id - ID de la moneda a actualizar
@@ -76,7 +99,7 @@ export class CurrencyController {
   update(
     @Param('id') id: string | Types.ObjectId,
     @Body() currencyData: Partial<Currency>,
-  ) {
+  ): Promise<Currency> {
     return this.currencyService.update(id, currencyData);
   }
 

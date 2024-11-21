@@ -15,6 +15,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Currency } from 'src/schemas/currency.schema';
 import { SubOfficeService } from '../sub_office/sub_office.service';
+import {
+  UpdateManyCurrenciesDto,
+  UpdateManyCurrenciesItem,
+} from 'src/dtos/update-many-currencies.dto';
 
 /**
  * Constructor del servicio de monedas
@@ -93,19 +97,101 @@ export class CurrencyService {
     id: string | Types.ObjectId,
     currencyData: Partial<Currency>,
   ): Promise<Currency> {
-    const currencyId =
-      id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
-    const updatedCurrency = await this.currencyModel
-      .findByIdAndUpdate(currencyId, currencyData, { new: true })
-      .exec();
+    try {
+      const currencyId = typeof id === 'string' ? new Types.ObjectId(id) : id;
+      const updatedCurrency = await this.currencyModel
+        .findByIdAndUpdate(currencyId, currencyData, { new: true })
+        .exec();
 
-    if (!updatedCurrency) {
-      throw new NotFoundException(`No se encontró la moneda con ID ${id}`);
+      if (!updatedCurrency) {
+        throw new NotFoundException(`No se encontró la moneda con ID ${id}`);
+      }
+
+      return updatedCurrency;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'BSONError') {
+        throw new BadRequestException(
+          `ID inválido: ${id}. Debe ser un ID de MongoDB válido`,
+        );
+      }
+      throw error;
     }
-
-    return updatedCurrency;
   }
 
+  /**
+   * Actualiza varios campos de varias monedas
+   *
+   * @param {{ [currencyId: string]: Partial<Currency> }} currencyData
+   *        Un objeto con los IDs de las monedas como clave y el objeto
+   *        con los datos a actualizar como valor
+   * @returns {Promise<{ success: boolean, updatedCurrencies: string[], errors: string[] }>}
+   *          Un objeto que indica el éxito de la operación, las monedas actualizadas,
+   *          y los errores encontrados
+   */
+  async updateManyCurrencies(updates: UpdateManyCurrenciesItem[]): Promise<{
+    success: boolean;
+    updatedCurrencies: {
+      id: string;
+      name: string;
+      code: string;
+      exchangeRate: number;
+    }[];
+    errors: string[];
+  }> {
+    const updatedCurrencies: {
+      id: string;
+      name: string;
+      code: string;
+      exchangeRate: number;
+    }[] = [];
+    const errors: string[] = [];
+
+    for (const updateItem of updates) {
+      try {
+        // Validar que el ID sea válido
+        if (!Types.ObjectId.isValid(updateItem.currencyId)) {
+          throw new Error(`ID inválido: ${updateItem.currencyId}`);
+        }
+
+        const currencyId =
+          typeof updateItem.currencyId === 'string'
+            ? new Types.ObjectId(updateItem.currencyId)
+            : updateItem.currencyId;
+
+        const updateData: any = {};
+        if (updateItem.exchangeRate !== undefined)
+          updateData.exchangeRate = updateItem.exchangeRate;
+        if (updateItem.name !== undefined) updateData.name = updateItem.name;
+
+        const updated = await this.currencyModel.findByIdAndUpdate(
+          currencyId,
+          { $set: updateData },
+          { new: true },
+        );
+
+        if (!updated) {
+          throw new Error(
+            `Moneda no encontrada con ID: ${updateItem.currencyId}`,
+          );
+        }
+
+        updatedCurrencies.push({
+          id: updateItem.currencyId,
+          name: updated.name,
+          code: updated.code,
+          exchangeRate: updated.exchangeRate,
+        });
+      } catch (error) {
+        errors.push(`${updateItem.currencyId}: ${error.message}`);
+      }
+    }
+
+    return {
+      success: errors.length === 0,
+      updatedCurrencies,
+      errors,
+    };
+  }
   /**
    * Elimina una moneda
    *

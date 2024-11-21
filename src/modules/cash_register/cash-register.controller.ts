@@ -68,6 +68,20 @@ export class CashRegisterController {
       throw new BadRequestException(error.message);
     }
   }
+
+  @Get(':subOfficeId/current-stock-total')
+  calculateCurrentStockTotal(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Body('usd_rate') usd_rate: number,
+  ): Promise<number> {
+    console.log(usd_rate);
+
+    return this.cashRegisterService.calculateCurrentStockTotal(
+      subOfficeId,
+      usd_rate,
+    );
+  }
+
   @Delete()
   deleteAllForDevelopment(): Promise<any> {
     return this.cashRegisterService.deleteAllForDevelopment();
