@@ -7,7 +7,7 @@
  * @property {Number} usd_ars_rate - Tasa de cambio entre USD y ARS
  * @property {Number} closing_balance - Monto final de la caja de dinero
  */
-import { IsNumber, IsNotEmpty } from 'class-validator';
+import { IsNumber, IsNotEmpty, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CloseCashRegisterDto {
@@ -27,12 +27,12 @@ export class CloseCashRegisterDto {
   @Type(() => Number)
   ars_rate: number;
 
-
   /**
    * Monto final de la caja de dinero
    */
+  @IsOptional()
   @IsNumber()
   @IsNotEmpty()
   @Type(() => Number)
-  closing_balance: number;
+  closing_balance?: number;
 }

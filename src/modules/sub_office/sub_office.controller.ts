@@ -21,6 +21,7 @@ import { Error, Types } from 'mongoose';
 import { createSubOfficeDto } from 'src/dtos/create-subOffice.dto';
 import { updateSubOfficeDto } from 'src/dtos/update-subOffice.dto';
 import { SubOffice } from 'src/schemas/sub_office.schema';
+import { UpdateCurrenciesStockDto } from 'src/dtos/update-currencies-stock.dto';
 
 @Controller('sub_offices')
 export class SubOfficeController {
@@ -108,6 +109,23 @@ export class SubOfficeController {
       currencyId,
       amount,
       operation,
+    );
+  }
+  /**
+   * Actualiza el stock de múltiples monedas en una suboficina
+   *
+   * @param {string} subOfficeId - ID de la suboficina a actualizar
+   * @param {UpdateCurrenciesStockDto} updateData - Datos de las monedas a actualizar
+   * @returns {Promise<string>} Un mensaje de confirmación
+   */
+  @Put(':subOfficeId/currencies')
+  async updateMultipleCurrencyStocks(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Body() updateData: UpdateCurrenciesStockDto,
+  ): Promise<string> {
+    return this.subOfficeService.updateMultipleCurrencyStocks(
+      subOfficeId,
+      updateData.updates,
     );
   }
 

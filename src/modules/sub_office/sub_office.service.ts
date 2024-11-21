@@ -19,6 +19,12 @@ import { createSubOfficeDto } from 'src/dtos/create-subOffice.dto';
 import { updateSubOfficeDto } from 'src/dtos/update-subOffice.dto';
 import { SubOffice } from 'src/schemas/sub_office.schema';
 
+interface CurrencyUpdate {
+  currencyId: string;
+  amount: number;
+  operation: 'increase' | 'decrease' | 'set';
+}
+
 @Injectable()
 export class SubOfficeService {
   private readonly MAX_RETRIES = 3;
@@ -89,7 +95,7 @@ export class SubOfficeService {
       .populate({
         path: 'currencies.currency',
         model: 'Currency',
-        select: 'name _id code',
+        select: 'name _id code exchangeRate updatedAt',
       })
       .populate('users')
       .exec();
@@ -353,6 +359,83 @@ export class SubOfficeService {
       });
     }
   }
+
+  /**
+   * Actualiza los stocks de múltiples monedas en una suboficina
+   *
+   * Si alguna moneda no existe en la suboficina, se añadirá con un stock inicial de 0
+   *
+   * @param {string | Types.ObjectId} subOfficeId - ID de la suboficina
+   * @param {CurrencyUpdate[]} updates - Arreglo de actualizaciones para las monedas
+   * @returns {Promise<string>} Un mensaje de confirmación
+   */
+  async updateMultipleCurrencyStocks(
+    subOfficeId: string | Types.ObjectId,
+    updates: CurrencyUpdate[],
+  ): Promise<string> {
+    return this.retry(async () => {
+      const session = await this.connection.startSession();
+      try {
+        let result;
+        await session.withTransaction(async () => {
+          const subOffice = await this.sub_officeModel
+            .findById(subOfficeId)
+            .session(session);
+
+          if (!subOffice) {
+            throw new NotFoundException(
+              `No se encontró la sucursal con ID ${subOfficeId}`,
+            );
+          }
+
+          for (const update of updates) {
+            const { currencyId, amount, operation } = update;
+            const currencyObjectId = new Types.ObjectId(currencyId);
+
+            const currencyIndex = subOffice.currencies.findIndex(
+              (c) => c.currency?.toString() === currencyObjectId.toString(),
+            );
+
+            if (currencyIndex === -1) {
+              subOffice.currencies.push({
+                currency: currencyObjectId,
+                stock: 0,
+              });
+            }
+
+            const currency =
+              currencyIndex === -1
+                ? subOffice.currencies[subOffice.currencies.length - 1]
+                : subOffice.currencies[currencyIndex];
+
+            switch (operation) {
+              case 'increase':
+                currency.stock += amount;
+                break;
+              case 'decrease':
+                if (currency.stock < amount) {
+                  throw new ConflictException(
+                    `Stock insuficiente para la moneda ${currencyId}. Stock actual: ${currency.stock}, Cantidad requerida: ${amount}`,
+                  );
+                }
+                currency.stock -= amount;
+                break;
+              case 'set':
+                currency.stock = amount;
+                break;
+            }
+          }
+
+          await subOffice.save({ session });
+          result = `Stocks actualizados correctamente`;
+        });
+        return result;
+      } finally {
+        session.endSession();
+      }
+    });
+  }
+
   /**
    * Elimina una moneda de una suboficina
    *
