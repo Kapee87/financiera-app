@@ -38,7 +38,7 @@ export class SubOffice {
   @Prop({
     type: [
       {
-        currency: { type: Types.ObjectId, ref: 'Currency' },
+        currency: { type: Types.ObjectId, ref: 'Currency', autopopulate: true },
         stock: { type: Number, required: true },
       },
     ],

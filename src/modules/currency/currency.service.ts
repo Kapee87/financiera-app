@@ -10,6 +10,8 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
@@ -19,6 +21,7 @@ import {
   UpdateManyCurrenciesDto,
   UpdateManyCurrenciesItem,
 } from 'src/dtos/update-many-currencies.dto';
+import { SubOfficeDocument } from 'src/schemas/sub_office.schema';
 
 /**
  * Constructor del servicio de monedas
@@ -34,6 +37,7 @@ export class CurrencyService {
    */
   constructor(
     @InjectModel(Currency.name) private currencyModel: Model<Currency>,
+    @Inject(forwardRef(() => SubOfficeService))
     private subOfficeService: SubOfficeService,
   ) {}
 
@@ -201,14 +205,31 @@ export class CurrencyService {
   async delete(id: string | Types.ObjectId): Promise<Currency> {
     const currencyId =
       id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+
+    // Buscar y eliminar la moneda de todas las suboficinas
+    const subOffices = await this.subOfficeService.findAll();
+    for (const subOffice of subOffices) {
+      console.log('subOffice:' + subOffice);
+      console.log('currencyId:' + currencyId);
+
+      const currencyIndex = subOffice.currencies.findIndex((c) =>
+        !c.currency ? '' : c.currency.toString() === currencyId.toString(),
+      );
+      if (currencyIndex > -1) {
+        subOffice.currencies.splice(currencyIndex, 1);
+        await (subOffice as SubOfficeDocument).save();
+      }
+    }
+
     const deletedCurrency = await this.currencyModel
       .findByIdAndDelete(currencyId)
       .exec();
 
     if (!deletedCurrency) {
-      throw new NotFoundException(`No es encontró la moneda con ID ${id}`);
+      throw new NotFoundException(`No se encontró la moneda con ID ${id}`);
     }
-
+    await this.subOfficeService.cleanNullCurrencies();
+    
     return deletedCurrency;
   }
 

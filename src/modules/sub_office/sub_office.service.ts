@@ -157,8 +157,9 @@ export class SubOfficeService {
       const currentCurrencies = subOffice.currencies || [];
 
       for (const currencyData of sub_officeData.currencies) {
-        const currencyId = currencyData.currency._id;
-        console.log(currencyId);
+        const currencyId = Types.ObjectId.isValid(currencyData.currency)
+          ? currencyData.currency
+          : currencyData.currency._id;
 
         if (Types.ObjectId.isValid(currencyId)) {
           try {
@@ -541,5 +542,43 @@ export class SubOfficeService {
       return 0; // Si no se encuentra stock para esta moneda, asumimos que es 0
     }
     return currencyStock.stock;
+  }
+
+  /**
+   * Elimina las monedas que no tienen un objeto de moneda asignado en todas las suboficinas
+   *
+   * @returns {Promise<string>} Un mensaje indicando el resultado de la operación
+   */
+  async cleanNullCurrencies(): Promise<string> {
+    try {
+      console.log('cleanNullCurrencies');
+      const subOffices = await this.sub_officeModel
+        .find()
+        .populate('currencies.currency')
+        .exec();
+
+      subOffices.forEach((subOffice) => {
+        console.log(
+          'Antes de actualizar el arreglo currencies:',
+          subOffice.currencies,
+        );
+        const currencies = subOffice.currencies.filter(
+          (currency) => currency.currency !== null,
+        );
+        console.log('Después de actualizar el arreglo currencies:', currencies);
+        subOffice.currencies = currencies;
+        console.log(
+          'Después de asignar el nuevo arreglo a la propiedad currencies:',
+          subOffice.currencies,
+        );
+        subOffice.save();
+        console.log('Después de guardar el documento subOffice:', subOffice);
+      });
+
+      return 'Monedas null eliminadas con éxito';
+    } catch (error) {
+      console.error(error);
+      return 'Error al eliminar monedas null';
+    }
   }
 }

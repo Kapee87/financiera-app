@@ -148,6 +148,20 @@ export class SubOfficeController {
       currencyId,
     );
   }
+  /**
+   * Elimina las monedas con valor null de todas las suboficinas
+   *
+   * @returns {Promise<string>} - Promesa que se resuelve con el mensaje de confirmación
+   */
+  @Delete('clean-null-currencies')
+  async cleanNullCurrencies(): Promise<string> {
+    try {
+      await this.subOfficeService.cleanNullCurrencies();
+      return 'Monedas null eliminadas con éxito';
+    } catch (error) {
+      throw new Error(`Error al eliminar monedas null: ${error.message}`);
+    }
+  }
 
   /**
    * Elimina una suboficina
