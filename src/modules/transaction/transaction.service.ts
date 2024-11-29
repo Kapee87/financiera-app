@@ -162,15 +162,27 @@ export class TransactionService {
         }
 
         if (type !== 'check') {
-          const currentSourceStock =
+          const currentSourceStock = Number(
             await this.subOfficeService.getCurrencyStock(
               subOffice.toString(),
               type === 'buy'
                 ? targetCurrency.toString()
                 : sourceCurrency.toString(),
-            );
+            ),
+          );
+          console.log('currentSourceStock: ', currentSourceStock);
+          console.log('targetAmount: ', targetAmount);
+          console.log('sourceAmount: ', sourceAmount);
 
-          const requiredStock = type === 'buy' ? targetAmount : sourceAmount;
+          const requiredStock =
+            type === 'buy' ? Number(targetAmount) : Number(sourceAmount);
+
+          /* console.log(
+            'currentSourceStock',
+            typeof currentSourceStock,
+            currentSourceStock,
+          );
+          console.log('requiredStock', typeof requiredStock, requiredStock); */
 
           if (currentSourceStock < requiredStock) {
             throw new BadRequestException(

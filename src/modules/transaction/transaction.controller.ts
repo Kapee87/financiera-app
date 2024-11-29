@@ -43,8 +43,6 @@ export class TransactionController {
    */
   @Post()
   create(@Body() transactionData: CreateTransactionDto) {
-    console.log(transactionData);
-
     return this.transactionService.create(transactionData);
   }
 
