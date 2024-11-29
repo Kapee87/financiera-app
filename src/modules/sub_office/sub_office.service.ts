@@ -528,7 +528,7 @@ export class SubOfficeService {
     subOfficeId: string | Types.ObjectId,
     currencyId: string | Types.ObjectId,
   ): Promise<number> {
-    const subOffice = await this.findOne(subOfficeId);
+    const subOffice = await this.sub_officeModel.findById(subOfficeId).lean();
 
     if (!subOffice) {
       throw new NotFoundException(`SubOffice with ID ${subOfficeId} not found`);
@@ -537,6 +537,7 @@ export class SubOfficeService {
     const currencyStock = subOffice.currencies.find(
       (stock) => stock.currency.toString() === currencyId.toString(),
     );
+    console.log('currencyStock', currencyStock);
 
     if (!currencyStock) {
       return 0; // Si no se encuentra stock para esta moneda, asumimos que es 0

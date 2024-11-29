@@ -247,9 +247,6 @@ export class CashRegisterService {
 
       // Luego convertir de ARS a USD
       const amountInUSD = amountInARS / usd_rate;
-      console.log(amountInARS);
-      console.log(amountInUSD);
-      console.log(usd_rate);
 
       totalStockUSD += amountInUSD;
     }

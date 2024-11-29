@@ -34,7 +34,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Types } from 'mongoose';
 
 @Controller('users')
-@UseGuards(IsActiveGuard, JwtAuthGuard)
+// @UseGuards(IsActiveGuard, JwtAuthGuard)
 export class UsersController {
   /**
    * Constructor del controlador de usuarios
