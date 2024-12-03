@@ -309,7 +309,7 @@ export class TransactionService {
           session,
         ),
       ]);
-    } else if (type === 'buy' || type === 'check') {
+    } else if (type === 'buy') {
       // En BUY:
       // - Recibimos la sourceCurrency (ARS)
       // - Entregamos la targetCurrency (USD)
@@ -425,7 +425,6 @@ export class TransactionService {
    */
   async delete(id: string | Types.ObjectId): Promise<String> {
     const session = await this.connection.startSession();
-    session.startTransaction();
     try {
       const transactionId =
         id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
@@ -433,42 +432,66 @@ export class TransactionService {
         .findById(transactionId)
         .session(session)
         .exec();
-
+      const transactionDTO = await plainToInstance(
+        CreateTransactionDto,
+        transaction,
+        {
+          excludeExtraneousValues: true,
+        },
+      );
       if (!transaction) {
         throw new NotFoundException(`Transaction with ID ${id} not found`);
       }
-      const stockUpdateDto: CreateTransactionDto = {
-        user: transaction.user,
-        subOffice: transaction.subOffice,
-        sourceCurrency: transaction.targetCurrency,
-        targetCurrency: transaction.sourceCurrency,
-        amount:
-          transaction.type === 'sell'
-            ? transaction.sourceAmount
-            : transaction.targetAmount,
-        type: transaction.type === 'sell' ? 'buy' : 'sell',
-        exchangeRate: transaction.exchangeRate,
-      };
-      // Llama a tu método de actualización de stock
-      await this.updateStocks(
-        stockUpdateDto,
-        transaction.targetAmount,
-        transaction.sourceAmount,
-        transaction.type === 'sell' ? 'buy' : 'sell',
-        session,
-      );
-
-      // Elimina la transacción
-      await this.transactionModel
-        .deleteOne({ _id: transactionId })
-        .session(session);
-      await session.commitTransaction();
-      return 'Transacción eliminada correctamente';
+      console.log(transactionDTO);
+      /* 
+      REVISAR MUY BIEN PORQUE VAN CRUZADOS
+      CONSIDERAR USAR UPDATESTOCKS DE ESTE MODULO, ANALIZAR COMO CONVERTIR LOS DATOS COLECTADOS CON EL ID EN DTO QUE ACEPTA EL MÉTODO
+       */
+      /* const subOfficeId = transaction.subOffice;
+      const decreaseCurrencyId =
+        transaction.type === 'buy' || 'check'
+          ? transaction.sourceCurrency
+          : transaction.targetCurrency;
+      const increaseCurrencyId =
+        transaction.type === 'buy'
+          ? transaction.targetCurrency
+          : transaction.sourceCurrency;
+      const increaseAmount =
+        transaction.type === 'buy'
+          ? transaction.targetAmount
+          : transaction.sourceAmount;
+      const decreaseAmount =
+        transaction.type === 'buy'
+          ? transaction.sourceAmount
+          : transaction.targetAmount;
+      console.log('decreaseAmount' + decreaseAmount);
+      console.log('decreaseCurrencyId' + decreaseCurrencyId);
+      console.log('increaseAmount' + increaseAmount);
+      console.log('increaseCurrencyId' + increaseCurrencyId);
+      await session.withTransaction(async () => {
+        const decreaseStock = await this.subOfficeService.updateCurrencyStock(
+          subOfficeId,
+          decreaseCurrencyId,
+          decreaseAmount,
+          'decrease',
+          session,
+        );
+        const increaseStock = await this.subOfficeService.updateCurrencyStock(
+          subOfficeId,
+          increaseCurrencyId,
+          increaseAmount,
+          'increase',
+          session,
+        );
+        console.log('decreaseStock: ' + decreaseStock);
+        console.log('increaseStock: ' + increaseStock);
+      }); */
+      await session.endSession();
+      return 'transacción eliminada correctamente';
     } catch (error) {
       await session.abortTransaction();
-      throw error;
-    } finally {
       await session.endSession();
+      throw error;
     }
   }
   private async getUserData(userId: string | Types.ObjectId) {
@@ -671,47 +694,3 @@ export class TransactionService {
     return this.transactionModel.deleteMany({});
   }
 }
-
-/* 
-REVISAR MUY BIEN PORQUE VAN CRUZADOS
-CONSIDERAR USAR UPDATESTOCKS DE ESTE MODULO, ANALIZAR COMO CONVERTIR LOS DATOS COLECTADOS CON EL ID EN DTO QUE ACEPTA EL MÉTODO
- */
-/* const subOfficeId = transaction.subOffice;
-const decreaseCurrencyId =
-  transaction.type === 'buy' || 'check'
-    ? transaction.sourceCurrency
-    : transaction.targetCurrency;
-const increaseCurrencyId =
-  transaction.type === 'buy'
-    ? transaction.targetCurrency
-    : transaction.sourceCurrency;
-const increaseAmount =
-  transaction.type === 'buy'
-    ? transaction.targetAmount
-    : transaction.sourceAmount;
-const decreaseAmount =
-  transaction.type === 'buy'
-    ? transaction.sourceAmount
-    : transaction.targetAmount;
-console.log('decreaseAmount' + decreaseAmount);
-console.log('decreaseCurrencyId' + decreaseCurrencyId);
-console.log('increaseAmount' + increaseAmount);
-console.log('increaseCurrencyId' + increaseCurrencyId);
-await session.withTransaction(async () => {
-  const decreaseStock = await this.subOfficeService.updateCurrencyStock(
-    subOfficeId,
-    decreaseCurrencyId,
-    decreaseAmount,
-    'decrease',
-    session,
-  );
-  const increaseStock = await this.subOfficeService.updateCurrencyStock(
-    subOfficeId,
-    increaseCurrencyId,
-    increaseAmount,
-    'increase',
-    session,
-  );
-  console.log('decreaseStock: ' + decreaseStock);
-  console.log('increaseStock: ' + increaseStock);
-}); */
