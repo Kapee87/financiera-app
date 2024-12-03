@@ -74,6 +74,11 @@ export class Transaction {
   type: string;
 
   @Prop({
+    type: Number,
+  })
+  profit: number;
+
+  @Prop({
     type: String,
     required: function () {
       return this.type === 'check';

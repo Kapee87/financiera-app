@@ -135,7 +135,7 @@ export class TransactionController {
     @Param('date') date: Date,
   ) {
     try {
-      return this.transactionService.getSalesAndChecksForDay(subOfficeId, date);
+      return this.transactionService.getPurchasesForDay(subOfficeId, date);
     } catch (error) {
       throw new BadRequestException(error.message);
     }

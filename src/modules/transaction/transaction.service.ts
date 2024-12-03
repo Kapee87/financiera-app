@@ -103,9 +103,9 @@ export class TransactionService {
           }
 
           const arsId = (await this.currencyService.findByCode('ARS'))._id;
-          if (targetCurrency.toString() !== arsId.toString()) {
+          if (sourceCurrency.toString() !== arsId.toString()) {
             throw new BadRequestException(
-              'Las operaciones de cheque no pueden ser realizadas con moneda diferente a ARS',
+              'Las operaciones de cheque solo aceptan ARS como moneda fuente',
             );
           }
         } else {
@@ -154,8 +154,8 @@ export class TransactionService {
             targetAmount = amount * exchangeRate; // cantidad que desea el cliente
             break;
           case 'check':
-            sourceAmount = amount; //cantidad que entrega el cliente(mediante cheque)
-            targetAmount = amount * exchangeRate; // cantidad que desea el cliente
+            targetAmount = amount; // cantidad que desea el cliente
+            sourceAmount = amount * exchangeRate; //cantidad que entrega el cliente(mediante cheque)
             break;
           default:
             throw new Error('Tipo de operación no soportada');
@@ -196,9 +196,16 @@ export class TransactionService {
         if (type === 'check') {
           await this.subOfficeService.updateCurrencyStock(
             subOffice.toString(),
+            sourceCurrency.toString(),
+            sourceAmount,
+            'increase',
+            session,
+          );
+          await this.subOfficeService.updateCurrencyStock(
+            subOffice.toString(),
             targetCurrency.toString(),
             targetAmount,
-            'increase',
+            'decrease',
             session,
           );
         } else {
@@ -414,10 +421,66 @@ export class TransactionService {
    * @param id Identificador de la transacción
    * @returns La transacción eliminada
    */
-  async delete(id: string | Types.ObjectId): Promise<Transaction> {
-    const transactionId =
-      id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
-    return this.transactionModel.findByIdAndDelete(transactionId).exec();
+  async delete(id: string | Types.ObjectId): Promise<String> {
+    const session = await this.connection.startSession();
+    try {
+      const transactionId =
+        id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+      const transaction = await this.transactionModel
+        .findById(transactionId)
+        .session(session)
+        .exec();
+      if (!transaction) {
+        throw new NotFoundException(`Transaction with ID ${id} not found`);
+      }
+      console.log(transaction);
+      /* REVISAR MUY BIEN PORQUE VAN CRUZADOS */
+      const subOfficeId = transaction.subOffice;
+      const decreaseCurrencyId =
+        transaction.type === 'buy'
+          ? transaction.sourceCurrency
+          : transaction.targetCurrency;
+      const increaseCurrencyId =
+        transaction.type === 'buy'
+          ? transaction.targetCurrency
+          : transaction.sourceCurrency;
+      const increaseAmount =
+        transaction.type === 'buy'
+          ? transaction.targetAmount
+          : transaction.sourceAmount;
+      const decreaseAmount =
+        transaction.type === 'buy'
+          ? transaction.sourceAmount
+          : transaction.targetAmount;
+      console.log('decreaseAmount' + decreaseAmount);
+      console.log('decreaseCurrencyId' + decreaseCurrencyId);
+      console.log('increaseAmount' + increaseAmount);
+      console.log('increaseCurrencyId' + increaseCurrencyId);
+      await session.withTransaction(async () => {
+        const decreaseStock = await this.subOfficeService.updateCurrencyStock(
+          subOfficeId,
+          decreaseCurrencyId,
+          decreaseAmount,
+          'decrease',
+          session,
+        );
+        const increaseStock = await this.subOfficeService.updateCurrencyStock(
+          subOfficeId,
+          increaseCurrencyId,
+          increaseAmount,
+          'increase',
+          session,
+        );
+        console.log('decreaseStock: ' + decreaseStock);
+        console.log('increaseStock: ' + increaseStock);
+      });
+      await session.endSession();
+      return 'transacción eliminada correctamente';
+    } catch (error) {
+      await session.abortTransaction();
+      await session.endSession();
+      throw error;
+    }
   }
   private async getUserData(userId: string | Types.ObjectId) {
     const newUserId =
@@ -546,19 +609,34 @@ export class TransactionService {
     subOfficeId: string | Types.ObjectId,
     date: Date,
   ): Promise<Transaction[]> {
+    // Convertir la cadena a objeto Date
+    const parsedDate = new Date(date);
+
+    // Verificar si la conversión fue exitosa
+    if (isNaN(parsedDate.getTime())) {
+      throw new BadRequestException('Fecha no válida');
+    }
+
     if (!Types.ObjectId.isValid(subOfficeId)) {
       throw new BadRequestException('El ID de la sub-oficina no es válido');
     }
-    const startOfMonth = new Date(date.getUTCFullYear(), date.getUTCMonth(), 1);
+
+    const startOfMonth = new Date(
+      parsedDate.getUTCFullYear(),
+      parsedDate.getUTCMonth(),
+      parsedDate.getUTCDate() | 1,
+    );
     const endOfMonth = new Date(
-      date.getUTCFullYear(),
-      date.getUTCMonth() + 1,
-      0,
+      parsedDate.getUTCFullYear(),
+      parsedDate.getUTCMonth() + 1,
+      parsedDate.getUTCDate() | 0,
       23,
       59,
       59,
       999,
     );
+    console.log('startOfMonth', startOfMonth, 'endOfMonth', endOfMonth);
+
     try {
       return await this.transactionModel
         .find({

@@ -266,10 +266,12 @@ export class SubOfficeService {
         currencyId instanceof Types.ObjectId
           ? currencyId
           : new Types.ObjectId(currencyId);
+      console.log('currencyObjectId', currencyObjectId);
 
       const currencyIndex = subOffice.currencies.findIndex(
         (c) => c.currency?.toString() === currencyObjectId.toString(),
       );
+      console.log('currencyIndex', currencyIndex);
 
       if (currencyIndex === -1) {
         subOffice.currencies.push({
@@ -282,6 +284,15 @@ export class SubOfficeService {
         currencyIndex === -1
           ? subOffice.currencies[subOffice.currencies.length - 1]
           : subOffice.currencies[currencyIndex];
+
+      console.log(
+        'Antes de actualizar el stock:',
+        currency.stock,
+        'Cantidad a agregar o restar:',
+        amount,
+        'Operación:',
+        operation,
+      );
 
       switch (operation) {
         case 'increase':
