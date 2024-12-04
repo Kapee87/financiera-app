@@ -29,6 +29,14 @@ export class Currency {
     required: true,
   })
   exchangeRate: number;
+
+  @Prop({
+    type: Boolean,
+    default: false,
+    unique: true,
+    sparse: true,
+  })
+  isPrimaryCurrency: boolean;
 }
 
 export const CurrencySchema = SchemaFactory.createForClass(Currency);

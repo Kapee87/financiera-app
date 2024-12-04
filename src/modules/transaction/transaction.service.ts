@@ -95,6 +95,7 @@ export class TransactionService {
             : createTransactionDto.checkDueDate,
           bankName,
         } = createTransactionDto;
+        let profit: number = null;
 
         // Validaciones específicas por tipo de operación
         if (type === 'check') {
@@ -146,22 +147,26 @@ export class TransactionService {
         let sourceAmount: number;
         let targetAmount: number;
 
-        switch (type) {
-          case 'buy':
-            targetAmount = amount; //cantidad que desea el cliente recibir
-            sourceAmount = amount * exchangeRate; // cantidad que entrega el cliente
-            break;
-          case 'sell':
-            sourceAmount = amount; //cantidad que entrega el cliente
-            targetAmount = amount * exchangeRate; // cantidad que desea el cliente
-            break;
-          case 'check':
-            targetAmount = amount; // cantidad que desea el cliente
-            sourceAmount = amount * exchangeRate; //cantidad que entrega el cliente(mediante cheque)
-            break;
-          default:
-            throw new Error('Tipo de operación no soportada');
+        if (
+          sourceCurrencyData.isPrimaryCurrency &&
+          (type === 'buy' || type === 'check')
+          // el cliente compra moneda con pago en ARS(incluye cambio de cheques)
+        ) {
+          targetAmount = amount; //cantidad que desea el cliente recibir
+          sourceAmount = amount * exchangeRate; // cantidad que entrega el cliente
+        } else if (targetCurrencyData.isPrimaryCurrency && type === 'sell') {
+          // el cliente vende moneda y se paga en ARS
+          sourceAmount = amount; //cantidad que entrega el cliente
+          targetAmount = amount * exchangeRate; // cantidad que desea el cliente recibir
         }
+
+        profit = this.calculateProfit(
+          sourceCurrencyData,
+          sourceAmount,
+          targetCurrencyData,
+          targetAmount,
+          type,
+        );
 
         if (type !== 'check') {
           const currentSourceStock = Number(
@@ -228,6 +233,7 @@ export class TransactionService {
           targetCurrencyCode: targetCurrencyData.code,
           sourceAmount,
           targetAmount,
+          profitARS: profit,
           ...(type === 'check' && {
             checkNumber,
             checkDueDate,
@@ -332,41 +338,40 @@ export class TransactionService {
     }
   }
 
-  /**
-   * Maneja la caja de la sucursal correspondiente
-   *
-   * @param subOfficeId Identificador de la sucursal
-   * @param type Tipo de transacción (buy, sell o exchange)
-   * @param sourceAmount Monto de la moneda fuente
-   * @param targetAmount Monto de la moneda destino
-   * @param exchangeRate Tasa de cambio
-   */
-
-  private async handleCashRegister(
-    subOfficeId: Types.ObjectId,
-    type: string,
+  private calculateProfit(
+    sourceCurrencyData: { exchangeRate: number; isPrimaryCurrency: boolean },
     sourceAmount: number,
+    targetCurrencyData: { exchangeRate: number; isPrimaryCurrency: boolean },
     targetAmount: number,
-    session: any,
-  ): Promise<void> {
-    let cashChange = 0;
-
-    if (type === 'buy') {
-      cashChange = -sourceAmount;
+    type: string,
+  ) {
+    let profit = 0;
+    if (type === 'buy' || type === 'check') {
+      if (sourceCurrencyData.isPrimaryCurrency) {
+        // Si la moneda fuente es primaria, calculamos la ganancia
+        const innerExchangeRate = targetCurrencyData.exchangeRate;
+        profit = sourceAmount - innerExchangeRate * targetAmount;
+      } else {
+        // Si la moneda fuente no es primaria, convertimos a ARS
+        let convertedAmount = sourceAmount * sourceCurrencyData.exchangeRate;
+        profit =
+          convertedAmount - targetAmount * targetCurrencyData.exchangeRate;
+      }
     } else if (type === 'sell') {
-      cashChange = sourceAmount;
+      if (targetCurrencyData.isPrimaryCurrency) {
+        // Si la moneda objetivo es primaria, calculamos la ganancia
+        let innerExchangeRate = sourceCurrencyData.exchangeRate;
+        profit = innerExchangeRate * sourceAmount - targetAmount;
+      } else {
+        // Si la moneda objetivo no es primaria, calculamos la conversión
+        const convertedAmount = sourceAmount * sourceCurrencyData.exchangeRate;
+        profit =
+          convertedAmount - targetAmount * targetCurrencyData.exchangeRate;
+      }
     }
-
-    try {
-      await this.cashService.updateCashRegister(
-        subOfficeId,
-        cashChange,
-        session,
-      );
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+    return profit;
   }
+
   /**
    * Obtiene todas las transacciones
    *
@@ -449,14 +454,40 @@ export class TransactionService {
         type: transaction.type === 'sell' ? 'buy' : 'sell',
         exchangeRate: transaction.exchangeRate,
       };
-      // Llama a tu método de actualización de stock
-      await this.updateStocks(
-        stockUpdateDto,
-        transaction.targetAmount,
-        transaction.sourceAmount,
-        transaction.type === 'sell' ? 'buy' : 'sell',
-        session,
-      );
+      const currentCashRegister =
+        await this.cashService.getCurrentCashRegisterForSubOffice(
+          transaction.subOffice,
+        );
+      if (currentCashRegister && currentCashRegister.closing_balance === null) {
+        const transactionDate = new Date(transaction.createdAt).getTime();
+        const currentDay = new Date(currentCashRegister.date).setHours(
+          0,
+          0,
+          0,
+          0,
+        );
+        if (transactionDate < currentDay) {
+          console.warn(
+            `La transacción con ID ${id} pertenece a un día anterior al de la caja abierta, no se actualizará el stock`,
+          );
+        } else {
+          // Llama a tu método de actualización de stock
+          await this.updateStocks(
+            stockUpdateDto,
+            transaction.targetAmount,
+            transaction.sourceAmount,
+            transaction.type === 'sell' ? 'buy' : 'sell',
+            session,
+          );
+          console.log(
+            `Stock actualizado correctamente para la transacción con ID ${id}`,
+          );
+        }
+      } else {
+        console.warn(
+          `La transacción con ID ${id} pertenece a un dia anterior al de la caja abierta, no se actualizará el stock`,
+        );
+      }
 
       // Elimina la transacción
       await this.transactionModel
@@ -473,7 +504,8 @@ export class TransactionService {
   }
   private async getUserData(userId: string | Types.ObjectId) {
     const newUserId =
-      userId instanceof Types.ObjectId ? userId : new Types.ObjectId();
+      userId instanceof Types.ObjectId ? userId : new Types.ObjectId(userId);
+
     try {
       const user = await this.userService.findOneById(newUserId);
       return { name: user.username };
@@ -524,6 +556,8 @@ export class TransactionService {
         this.getCurrencyData(transaction.sourceCurrency.toString()),
         this.getCurrencyData(transaction.targetCurrency.toString()),
       ]);
+    console.log('user data: ', userData);
+
     return {
       ...transaction.toObject(),
       userName: userData.name,
@@ -651,7 +685,7 @@ export class TransactionService {
     const transactions = await this.getTransactionsForDay(subOfficeId, date);
     return transactions.filter(
       (transaction) =>
-        transaction.type === 'sell' || transaction.type === 'check',
+        transaction.type === 'buy' || transaction.type === 'check',
     );
   }
 
@@ -660,7 +694,7 @@ export class TransactionService {
     date: Date,
   ): Promise<Transaction[]> {
     const transactions = await this.getTransactionsForDay(subOfficeId, date);
-    return transactions.filter((transaction) => transaction.type === 'buy');
+    return transactions.filter((transaction) => transaction.type === 'sell');
   }
 
   // Método para desarrollo, usar con precaución
@@ -671,47 +705,3 @@ export class TransactionService {
     return this.transactionModel.deleteMany({});
   }
 }
-
-/* 
-REVISAR MUY BIEN PORQUE VAN CRUZADOS
-CONSIDERAR USAR UPDATESTOCKS DE ESTE MODULO, ANALIZAR COMO CONVERTIR LOS DATOS COLECTADOS CON EL ID EN DTO QUE ACEPTA EL MÉTODO
- */
-/* const subOfficeId = transaction.subOffice;
-const decreaseCurrencyId =
-  transaction.type === 'buy' || 'check'
-    ? transaction.sourceCurrency
-    : transaction.targetCurrency;
-const increaseCurrencyId =
-  transaction.type === 'buy'
-    ? transaction.targetCurrency
-    : transaction.sourceCurrency;
-const increaseAmount =
-  transaction.type === 'buy'
-    ? transaction.targetAmount
-    : transaction.sourceAmount;
-const decreaseAmount =
-  transaction.type === 'buy'
-    ? transaction.sourceAmount
-    : transaction.targetAmount;
-console.log('decreaseAmount' + decreaseAmount);
-console.log('decreaseCurrencyId' + decreaseCurrencyId);
-console.log('increaseAmount' + increaseAmount);
-console.log('increaseCurrencyId' + increaseCurrencyId);
-await session.withTransaction(async () => {
-  const decreaseStock = await this.subOfficeService.updateCurrencyStock(
-    subOfficeId,
-    decreaseCurrencyId,
-    decreaseAmount,
-    'decrease',
-    session,
-  );
-  const increaseStock = await this.subOfficeService.updateCurrencyStock(
-    subOfficeId,
-    increaseCurrencyId,
-    increaseAmount,
-    'increase',
-    session,
-  );
-  console.log('decreaseStock: ' + decreaseStock);
-  console.log('increaseStock: ' + increaseStock);
-}); */

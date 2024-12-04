@@ -28,4 +28,7 @@ export class UpdateManyCurrenciesItem {
 
   @IsOptional()
   name?: string;
+
+  @IsOptional()
+  isprimarycurrency?: boolean;
 }

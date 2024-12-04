@@ -139,6 +139,7 @@ export class CurrencyService {
       name: string;
       code: string;
       exchangeRate: number;
+      isPrimaryCurrency?: boolean;
     }[];
     errors: string[];
   }> {
@@ -147,8 +148,22 @@ export class CurrencyService {
       name: string;
       code: string;
       exchangeRate: number;
+      isPrimaryCurrency?: boolean;
     }[] = [];
     const errors: string[] = [];
+
+    const primaryCurrencyUpdate = updates.find(
+      (update) => update.isprimarycurrency === true,
+    );
+    if (primaryCurrencyUpdate) {
+      await this.currencyModel.updateMany(
+        {
+          isPrimaryCurrency: true,
+          _id: { $ne: primaryCurrencyUpdate.currencyId },
+        },
+        { $set: { isPrimaryCurrency: false } }, // Desmarcar otras monedas
+      );
+    }
 
     for (const updateItem of updates) {
       try {
@@ -167,6 +182,10 @@ export class CurrencyService {
           updateData.exchangeRate = updateItem.exchangeRate;
         if (updateItem.name !== undefined) updateData.name = updateItem.name;
 
+        if (updateItem.isprimarycurrency !== undefined) {
+          updateData.isPrimaryCurrency = updateItem.isprimarycurrency;
+        }
+
         const updated = await this.currencyModel.findByIdAndUpdate(
           currencyId,
           { $set: updateData },
@@ -184,6 +203,7 @@ export class CurrencyService {
           name: updated.name,
           code: updated.code,
           exchangeRate: updated.exchangeRate,
+          isPrimaryCurrency: updated.isPrimaryCurrency,
         });
       } catch (error) {
         errors.push(`${updateItem.currencyId}: ${error.message}`);
@@ -229,7 +249,7 @@ export class CurrencyService {
       throw new NotFoundException(`No se encontró la moneda con ID ${id}`);
     }
     await this.subOfficeService.cleanNullCurrencies();
-    
+
     return deletedCurrency;
   }
 

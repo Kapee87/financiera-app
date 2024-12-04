@@ -75,8 +75,9 @@ export class Transaction {
 
   @Prop({
     type: Number,
+    default: 0,
   })
-  profit: number;
+  profitARS: number;
 
   @Prop({
     type: String,
