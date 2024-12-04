@@ -12,7 +12,7 @@
  * @property {ObjectId} user - Usuario que realizó el movimiento
  * @property {ObjectId} sub_office - Sucursal en la que se realizó el movimiento
  * @property {ObjectId} currency - Moneda en la que se realizó el movimiento
- * 
+ *
  */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
@@ -45,7 +45,7 @@ export class Movement {
   @Prop({ type: String, required: true })
   type: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: Types.ObjectId, ref: 'User', autopopulate: true })
   user: string;
 
   @Prop({ type: Types.ObjectId, ref: 'SubOffice', required: true })

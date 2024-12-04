@@ -410,12 +410,15 @@ export class CashRegisterService {
       const date = this.truncateDate(dateStr);
       const nextDay = this.getNextDay(date);
 
-      return this.cashRegisterModel.findOne({
-        date: {
-          $gte: date,
-          $lt: nextDay,
-        },
-      });
+      return this.cashRegisterModel
+        .findOne({
+          date: {
+            $gte: date,
+            $lt: nextDay,
+          },
+        })
+        .populate('sub_office', '_id name')
+        .exec();
     } catch (error) {
       throw new BadRequestException(
         'Formato de fecha inválido. Use YYYY-MM-DD',
@@ -425,6 +428,13 @@ export class CashRegisterService {
 
   async listAllCashRegisters(): Promise<CashRegister[]> {
     return this.cashRegisterModel.find();
+  }
+
+  async findById(id: string | Types.ObjectId): Promise<CashRegister> {
+    return this.cashRegisterModel
+      .findById(id)
+      .populate('sub_office', '_id name')
+      .exec();
   }
 
   // Método para desarrollo, usar con precaución

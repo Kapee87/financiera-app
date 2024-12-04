@@ -13,6 +13,7 @@ import {
 import { CreateMovementDto } from 'src/dtos/create-movement.dto';
 import { UpdateMovementDto } from 'src/dtos/update-movement.dto';
 import { MovementService } from './movements.service';
+import { MovementFilterDto } from 'src/dtos/movement-filter.dto';
 
 @Controller('movements')
 export class MovementController {
@@ -28,6 +29,11 @@ export class MovementController {
   @Get()
   findAll() {
     return this.movementService.findAll();
+  }
+
+  @Get('/filter/')
+  findByFilter(@Body() movementFilterDto: MovementFilterDto) {
+    return this.movementService.findByFilter(movementFilterDto);
   }
 
   @Get(':id')

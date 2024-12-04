@@ -82,6 +82,11 @@ export class CashRegisterController {
     );
   }
 
+  @Get('/by-id/:id')
+  findById(@Param('id') id: string | Types.ObjectId): Promise<CashRegister> {
+    return this.cashRegisterService.findById(id);
+  }
+
   @Delete()
   deleteAllForDevelopment(): Promise<any> {
     return this.cashRegisterService.deleteAllForDevelopment();

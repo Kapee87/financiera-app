@@ -8,11 +8,13 @@ import {
   Delete,
   Put,
   NotFoundException,
+  Patch,
 } from '@nestjs/common';
 import { CreateClientDto } from 'src/dtos/create-client.dto';
 import { UpdateClientDto } from 'src/dtos/update-client.dto';
 import { ClientsService } from './clients.service';
 import { Types } from 'mongoose';
+import { UpdateClientArraysDto } from 'src/dtos/update-client-array.dto';
 
 @Controller('clients')
 export class ClientsController {
@@ -43,6 +45,14 @@ export class ClientsController {
     console.log(updateClientDto);
 
     return this.clientsService.update(id, updateClientDto);
+  }
+
+  @Patch(':id/arrays')
+  updateArrays(
+    @Param('id') id: string | Types.ObjectId,
+    @Body() updateArraysDto: UpdateClientArraysDto,
+  ) {
+    return this.clientsService.updateArrays(id, updateArraysDto);
   }
 
   @Delete(':id')

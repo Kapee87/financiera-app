@@ -97,6 +97,16 @@ export class MovementService {
     }
   }
 
+  async findByFilter(movementFilterDto): Promise<Movement[]> {
+    console.log(movementFilterDto);
+    try {
+      const movements = await this.expenseModel.find(movementFilterDto).exec();
+      return movements;
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
+  }
+
   async getMovementsByDate(date: Date): Promise<Movement[]> {
     try {
       return await this.expenseModel.find({ date }).exec();

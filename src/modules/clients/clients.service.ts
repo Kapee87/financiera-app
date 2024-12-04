@@ -7,6 +7,10 @@ import { CreateClientDto } from 'src/dtos/create-client.dto';
 import { UpdateClientDto } from 'src/dtos/update-client.dto';
 import { Client, ClientDocument } from 'src/schemas/clients.schema';
 import * as bcrypt from 'bcrypt';
+import {
+  OperationType,
+  UpdateClientArraysDto,
+} from 'src/dtos/update-client-array.dto';
 
 @Injectable()
 export class ClientsService {
@@ -56,6 +60,30 @@ export class ClientsService {
 
     return this.expenseModel
       .findByIdAndUpdate(clientId, updateClientDto, { new: true })
+      .exec();
+  }
+
+  async updateArrays(
+    id: string | Types.ObjectId,
+    updateArraysDto: UpdateClientArraysDto,
+  ): Promise<Client> {
+    const clientId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
+    const { operation, type, elements } = updateArraysDto;
+
+    const updateOperation =
+      operation === OperationType.ADD ? '$addToSet' : '$pull';
+
+    const updateQuery = {
+      [updateOperation]: {
+        [type]:
+          operation === OperationType.ADD
+            ? { $each: elements }
+            : { $in: elements },
+      },
+    };
+
+    return this.expenseModel
+      .findByIdAndUpdate(clientId, updateQuery, { new: true })
       .exec();
   }
 
