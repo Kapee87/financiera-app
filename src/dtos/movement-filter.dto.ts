@@ -18,10 +18,6 @@ export class MovementFilterDto {
   type?: string;
 
   @IsOptional()
-  @IsDateString()
-  date?: Date;
-
-  @IsOptional()
   @IsNumber()
   amount?: number;
 
@@ -40,12 +36,4 @@ export class MovementFilterDto {
   @IsOptional()
   @IsString()
   user?: string;
-
-  @IsOptional()
-  @IsDateString()
-  createdAt: Date;
-
-  @IsOptional()
-  @IsDateString()
-  updatedAt: Date;
 }

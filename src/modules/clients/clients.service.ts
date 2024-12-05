@@ -15,16 +15,14 @@ import {
 @Injectable()
 export class ClientsService {
   constructor(
-    @InjectModel(Client.name) private expenseModel: Model<ClientDocument>,
+    @InjectModel(Client.name) private clientModel: Model<ClientDocument>,
   ) {}
 
   async create(createClientsDto: CreateClientDto): Promise<Client> {
     try {
-      const hashedPassword = await bcrypt.hash(createClientsDto.password, 10);
-      const createdClients = await this.expenseModel.create({
+      const createdClients = await this.clientModel.create({
         name: createClientsDto.name,
         lastname: createClientsDto.lastname,
-        password: hashedPassword,
         money: createClientsDto.money,
         totalDebts: createClientsDto.totalDebts,
         totalPayments: createClientsDto.totalPayments,
@@ -43,12 +41,12 @@ export class ClientsService {
   }
 
   async findAll(): Promise<Client[]> {
-    return this.expenseModel.find().exec();
+    return this.clientModel.find().exec();
   }
 
   async findOne(id: string | Types.ObjectId): Promise<Client> {
     const clientId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
-    return this.expenseModel.findById(clientId).exec();
+    return this.clientModel.findById(clientId).exec();
   }
 
   async update(
@@ -58,7 +56,7 @@ export class ClientsService {
     const clientId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
     console.log(updateClientDto);
 
-    return this.expenseModel
+    return this.clientModel
       .findByIdAndUpdate(clientId, updateClientDto, { new: true })
       .exec();
   }
@@ -82,19 +80,19 @@ export class ClientsService {
       },
     };
 
-    return this.expenseModel
+    return this.clientModel
       .findByIdAndUpdate(clientId, updateQuery, { new: true })
       .exec();
   }
 
   async remove(id: string | Types.ObjectId): Promise<void> {
     const clientId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
-    await this.expenseModel.findByIdAndDelete(clientId).exec();
+    await this.clientModel.findByIdAndDelete(clientId).exec();
   }
 
   removeAll(): string {
     try {
-      this.expenseModel.deleteMany({}).exec();
+      this.clientModel.deleteMany({}).exec();
       return 'Todos los clientes han sido eliminados';
     } catch (error) {}
   }

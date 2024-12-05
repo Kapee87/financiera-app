@@ -6,7 +6,6 @@
  *
  * @property {string} name - Nombre del cliente
  * @property {string} lastname - Apellido del cliente
- * @property {string} password - Contrase a del cliente
  * @property {number} [money] - Dinero que el cliente tiene en la cuenta (opcional)
  * @property {number} [totalDebts] - Total de deudas del cliente (opcional)
  * @property {number} [totalPayments] - Total de pagos del cliente (opcional)
@@ -38,13 +37,6 @@ export class CreateClientDto {
   @IsString()
   @IsNotEmpty()
   lastname: string;
-
-  /**
-   * Contrase a del cliente
-   */
-  @IsString()
-  @IsNotEmpty()
-  password: string;
 
   /**
    * Dinero que el cliente tiene en la cuenta (opcional)
