@@ -18,6 +18,7 @@ import { SubOfficeModule } from './modules/sub_office/sub_office.module';
 
 import { ClientsModule } from './modules/clients/clients.module';
 import { MovementModule } from './modules/movements/movements.module';
+import { BalanceModule } from './modules/balance/balance.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { MovementModule } from './modules/movements/movements.module';
     SubOfficeModule,
     MovementModule,
     ClientsModule,
+    BalanceModule,
   ],
   exports: [MongooseModule],
 })
