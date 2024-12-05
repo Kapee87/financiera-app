@@ -41,7 +41,11 @@ export class ClientsService {
   }
 
   async findAll(): Promise<Client[]> {
-    return this.clientModel.find().exec();
+    return this.clientModel
+      .find()
+      .populate('transactions')
+      .populate('movements')
+      .exec();
   }
 
   async findOne(id: string | Types.ObjectId): Promise<Client> {

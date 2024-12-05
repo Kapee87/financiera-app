@@ -97,7 +97,11 @@ export class SubOfficeService {
         model: 'Currency',
         select: 'name _id code exchangeRate updatedAt',
       })
-      .populate('users')
+      .populate({
+        path: 'users',
+        model: 'User',
+        select: 'name _id email',
+      })
       .exec();
   }
 

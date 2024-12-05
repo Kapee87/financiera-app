@@ -62,6 +62,8 @@ export class TransactionController {
    */
   @Get(':id')
   findOne(@Param('id') id: string | Types.ObjectId) {
+    console.log('controller findOne', id);
+
     return this.transactionService.findOne(id);
   }
 

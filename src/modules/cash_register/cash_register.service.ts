@@ -427,7 +427,10 @@ export class CashRegisterService {
   }
 
   async listAllCashRegisters(): Promise<CashRegister[]> {
-    return this.cashRegisterModel.find();
+    return this.cashRegisterModel
+      .find()
+      .populate('sub_office', '_id name code')
+      .exec();
   }
 
   async findById(id: string | Types.ObjectId): Promise<CashRegister> {
