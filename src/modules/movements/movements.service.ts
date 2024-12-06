@@ -11,7 +11,7 @@ import { CashRegisterService } from '../cash_register/cash_register.service';
 @Injectable()
 export class MovementService {
   constructor(
-    @InjectModel(Movement.name) private expenseModel: Model<MovementDocument>,
+    @InjectModel(Movement.name) private movementModel: Model<MovementDocument>,
     @InjectConnection() private connection: Connection,
     private subOfficeService: SubOfficeService,
     private cashService: CashRegisterService,
@@ -37,7 +37,7 @@ export class MovementService {
           session,
         );
         // Crear el movimiento
-        return await this.expenseModel.create({
+        return await this.movementModel.create({
           date: new Date(),
           amount: createMovementDto.amount,
           description: createMovementDto.description,
@@ -83,7 +83,13 @@ export class MovementService {
 
   async findAll(): Promise<Movement[]> {
     try {
-      return await this.expenseModel.find().exec();
+      const movements = await this.movementModel
+        .find()
+        .populate('user', '_id username email')
+        .populate('currency', '_id name code')
+        .populate('sub_office', '_id name')
+        .exec();
+      return movements;
     } catch (error) {
       throw new NotFoundException(error.message);
     }
@@ -91,7 +97,7 @@ export class MovementService {
 
   async findOne(id: string): Promise<Movement> {
     try {
-      return await this.expenseModel.findById(id).exec();
+      return await this.movementModel.findById(id).exec();
     } catch (error) {
       throw new NotFoundException(error.message);
     }
@@ -100,7 +106,7 @@ export class MovementService {
   async findByFilter(movementFilterDto): Promise<Movement[]> {
     console.log(movementFilterDto);
     try {
-      const movements = await this.expenseModel.find(movementFilterDto).exec();
+      const movements = await this.movementModel.find(movementFilterDto).exec();
       return movements;
     } catch (error) {
       throw new NotFoundException(error.message);
@@ -109,7 +115,7 @@ export class MovementService {
 
   async getMovementsByDate(date: Date): Promise<Movement[]> {
     try {
-      return await this.expenseModel.find({ date }).exec();
+      return await this.movementModel.find({ date }).exec();
     } catch (error) {
       throw new NotFoundException(error.message);
     }
@@ -117,7 +123,7 @@ export class MovementService {
 
   async getMovementsByType(category: string): Promise<Movement[]> {
     try {
-      return await this.expenseModel.find({ category }).exec();
+      return await this.movementModel.find({ category }).exec();
     } catch (error) {
       throw new NotFoundException(error.message);
     }
@@ -125,19 +131,19 @@ export class MovementService {
 
   async update(
     id: string,
-    updateMovementDto: Partial<Pick<CreateMovementDto, 'description'>>,
+    updateMovementDto: Partial<CreateMovementDto>,
   ): Promise<Movement> {
     const session = await this.connection.startSession();
     try {
       const updatedMovement = await session.withTransaction(async () => {
-        const movement = await this.expenseModel.findById(id).exec();
+        const movement = await this.movementModel.findById(id).exec();
         if (!movement) {
           throw new NotFoundException(
             `No se encontró el movimiento con id ${id}`,
           );
         }
         // Actualizar el movimiento
-        return await this.expenseModel
+        return await this.movementModel
           .findByIdAndUpdate(id, updateMovementDto, { new: true })
           .exec();
       });
@@ -151,7 +157,7 @@ export class MovementService {
   async remove(id: string): Promise<void> {
     const session = await this.connection.startSession();
     try {
-      const movement = await this.expenseModel.findById(id).exec();
+      const movement = await this.movementModel.findById(id).exec();
       if (!movement) {
         throw new Error(`No se encontró el movimiento con id ${id}`);
       }
@@ -186,7 +192,7 @@ export class MovementService {
           }
         }
         // Eliminar el movimiento
-        await this.expenseModel.findByIdAndDelete(id).exec();
+        await this.movementModel.findByIdAndDelete(id).exec();
       });
     } catch (error) {
       throw new BadRequestException(error.message);
@@ -195,7 +201,7 @@ export class MovementService {
     }
   }
   async removeAll() {
-    await this.expenseModel.deleteMany({}).exec();
+    await this.movementModel.deleteMany({}).exec();
     return { message: 'Deleted all movements' };
   }
 }

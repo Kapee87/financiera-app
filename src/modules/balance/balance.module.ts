@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Balance } from 'src/schemas/balance.schema';
+import { Balance, BalanceSchema } from 'src/schemas/balance.schema';
 import { BalanceController } from './balance.controller';
 import { BalanceService } from './balance.service';
 import { CurrencyModule } from '../currency/currency.module';
@@ -12,12 +12,7 @@ import { MovementModule } from '../movements/movements.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      {
-        name: 'Balance',
-        schema: Balance,
-      },
-    ]),
+    MongooseModule.forFeature([{ name: Balance.name, schema: BalanceSchema }]),
     forwardRef(() => SubOfficeModule),
     forwardRef(() => CurrencyModule),
     forwardRef(() => TransactionModule),
