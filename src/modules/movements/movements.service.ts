@@ -26,16 +26,20 @@ export class MovementService {
     }
 
     const session = await this.connection.startSession();
+    console.log('createMovementDto', createMovementDto);
+
     try {
       const createdMovement = await session.withTransaction(async () => {
         // Actualizar el stock de la moneda correspondiente
-        await this.updateStock(
+        const updatedStock = await this.updateStock(
           createMovementDto.subOffice,
           createMovementDto.currency,
           createMovementDto.amount,
-          createMovementDto.type,
+          createMovementDto.category,
           session,
         );
+        console.log('updatedStock: ' + updatedStock);
+
         // Crear el movimiento
         return await this.movementModel.create({
           date: new Date(),
@@ -62,6 +66,10 @@ export class MovementService {
     type: string,
     session: any,
   ): Promise<void> {
+    console.log('updateStock');
+    console.log('type: ' + type);
+    console.log('amount: ' + amount);
+
     if (type === 'ingreso') {
       await this.subOfficeService.updateCurrencyStock(
         subOfficeId,

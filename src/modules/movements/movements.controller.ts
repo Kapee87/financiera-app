@@ -21,8 +21,6 @@ export class MovementController {
 
   @Post()
   create(@Body() createMovementDto: CreateMovementDto) {
-    console.log(createMovementDto);
-
     return this.movementService.create(createMovementDto);
   }
 
