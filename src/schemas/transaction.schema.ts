@@ -70,7 +70,7 @@ export class Transaction {
   @Prop({ type: Number })
   commission?: number;
 
-  @Prop({ enum: ['buy', 'sell', 'exchange', 'check'], required: true })
+  @Prop({ enum: ['Compra', 'Venta', 'exchange', 'Cambio de cheque'], required: true })
   type: string;
 
   @Prop({
@@ -82,7 +82,7 @@ export class Transaction {
   @Prop({
     type: String,
     required: function () {
-      return this.type === 'check';
+      return this.type === 'Cambio de cheque';
     },
   })
   checkNumber?: string;
@@ -90,7 +90,7 @@ export class Transaction {
   @Prop({
     type: Date,
     required: function () {
-      return this.type === 'check';
+      return this.type === 'Cambio de cheque';
     },
   })
   checkDueDate?: Date;
@@ -98,7 +98,7 @@ export class Transaction {
   @Prop({
     type: String,
     required: function () {
-      return this.type === 'check';
+      return this.type === 'Cambio de cheque';
     },
   })
   bankName?: string;

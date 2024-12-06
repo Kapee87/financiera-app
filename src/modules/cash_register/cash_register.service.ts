@@ -168,15 +168,15 @@ export class CashRegisterService {
       );
 
       switch (tx.type) {
-        case 'buy':
+        case 'Compra':
           totalExpensesUSD += sourceAmountUSD;
           totalIncomeUSD += targetAmountUSD;
           break;
-        case 'sell':
+        case 'Venta':
           totalIncomeUSD += sourceAmountUSD;
           totalExpensesUSD += targetAmountUSD;
           break;
-        case 'check':
+        case 'Cambio de cheque':
           checkIncomeUSD += targetAmountUSD;
           break;
       }

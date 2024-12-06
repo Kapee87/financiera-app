@@ -56,17 +56,17 @@ export class TransactionService {
    * Crea una nueva transacción
    *
    * Tipos de operaciones:
-   * 'buy':
+   * 'Compra':
    * - sourceCurrency: la moneda que el cliente entrega
    * - targetCurrency: la moneda que el cliente recibe
    * - amount: la cantidad de la moneda que el cliente quiere recibir
    *
-   * 'sell':
+   * 'Venta':
    * - sourceCurrency: la moneda que el cliente entrega
    * - targetCurrency: la moneda que el cliente recibe
    * - amount: la cantidad de la moneda que el cliente entrega
    *
-   * 'check':
+   * 'Cambio de cheque':
    * - sourceCurrency: siempre será CHECK
    * - targetCurrency: siempre será ARS
    * - amount: el valor nominal del cheque
@@ -97,7 +97,7 @@ export class TransactionService {
         } = createTransactionDto;
 
         // Validaciones específicas por tipo de operación
-        if (type === 'check') {
+        if (type === 'Cambio de cheque') {
           if (!checkNumber || !checkDueDate || !bankName) {
             throw new BadRequestException(
               'Las operaciones de cheques deben tener el campo checkNumber, checkDueDate y bankName',
@@ -147,15 +147,15 @@ export class TransactionService {
         let targetAmount: number;
 
         switch (type) {
-          case 'buy':
+          case 'Compra':
             targetAmount = amount; //cantidad que desea el cliente recibir
             sourceAmount = amount * exchangeRate; // cantidad que entrega el cliente
             break;
-          case 'sell':
+          case 'Venta':
             sourceAmount = amount; //cantidad que entrega el cliente
             targetAmount = amount * exchangeRate; // cantidad que desea el cliente
             break;
-          case 'check':
+          case 'Cambio de cheque':
             targetAmount = amount; // cantidad que desea el cliente
             sourceAmount = amount * exchangeRate; //cantidad que entrega el cliente(mediante cheque)
             break;
@@ -163,11 +163,11 @@ export class TransactionService {
             throw new Error('Tipo de operación no soportada');
         }
 
-        if (type !== 'check') {
+        if (type !== 'Cambio de cheque') {
           const currentSourceStock = Number(
             await this.subOfficeService.getCurrencyStock(
               subOffice.toString(),
-              type === 'buy'
+              type === 'Compra'
                 ? targetCurrency.toString()
                 : sourceCurrency.toString(),
             ),
@@ -177,7 +177,7 @@ export class TransactionService {
           console.log('sourceAmount: ', sourceAmount);
 
           const requiredStock =
-            type === 'buy' ? Number(targetAmount) : Number(sourceAmount);
+            type === 'Compra' ? Number(targetAmount) : Number(sourceAmount);
 
           /* console.log(
             'currentSourceStock',
@@ -188,14 +188,14 @@ export class TransactionService {
 
           if (currentSourceStock < requiredStock) {
             throw new BadRequestException(
-              `Stock insuficiente para ${type === 'buy' ? targetCurrencyData.code : sourceCurrencyData.code}. ` +
+              `Stock insuficiente para ${type === 'Compra' ? targetCurrencyData.code : sourceCurrencyData.code}. ` +
                 `Requerido: ${requiredStock}, Disponible: ${currentSourceStock}`,
             );
           }
         }
 
         // Pasar la sesión a las operaciones de stock
-        if (type === 'check') {
+        if (type === 'Cambio de cheque') {
           await this.subOfficeService.updateCurrencyStock(
             subOffice.toString(),
             sourceCurrency.toString(),
@@ -228,7 +228,7 @@ export class TransactionService {
           targetCurrencyCode: targetCurrencyData.code,
           sourceAmount,
           targetAmount,
-          ...(type === 'check' && {
+          ...(type === 'Cambio de cheque' && {
             checkNumber,
             checkDueDate,
             bankName,
@@ -289,7 +289,7 @@ export class TransactionService {
     // En ambas operaciones:
     // - La moneda que recibimos aumenta
     // - La moneda que entregamos disminuye
-    if (type === 'sell') {
+    if (type === 'Venta') {
       // En SELL:
       // - Recibimos la sourceCurrency (USD)
       // - Entregamos la targetCurrency (ARS)
@@ -309,7 +309,7 @@ export class TransactionService {
           session,
         ),
       ]);
-    } else if (type === 'buy') {
+    } else if (type === 'Compra') {
       // En BUY:
       // - Recibimos la sourceCurrency (ARS)
       // - Entregamos la targetCurrency (USD)
@@ -351,9 +351,9 @@ export class TransactionService {
   ): Promise<void> {
     let cashChange = 0;
 
-    if (type === 'buy') {
+    if (type === 'Compra') {
       cashChange = -sourceAmount;
-    } else if (type === 'sell') {
+    } else if (type === 'Venta') {
       cashChange = sourceAmount;
     }
 
@@ -449,19 +449,19 @@ export class TransactionService {
        */
       /* const subOfficeId = transaction.subOffice;
       const decreaseCurrencyId =
-        transaction.type === 'buy' || 'check'
+        transaction.type === 'Compra' || 'Cambio de cheque'
           ? transaction.sourceCurrency
           : transaction.targetCurrency;
       const increaseCurrencyId =
-        transaction.type === 'buy'
+        transaction.type === 'Compra'
           ? transaction.targetCurrency
           : transaction.sourceCurrency;
       const increaseAmount =
-        transaction.type === 'buy'
+        transaction.type === 'Compra'
           ? transaction.targetAmount
           : transaction.sourceAmount;
       const decreaseAmount =
-        transaction.type === 'buy'
+        transaction.type === 'Compra'
           ? transaction.sourceAmount
           : transaction.targetAmount;
       console.log('decreaseAmount' + decreaseAmount);
@@ -674,7 +674,7 @@ export class TransactionService {
     const transactions = await this.getTransactionsForDay(subOfficeId, date);
     return transactions.filter(
       (transaction) =>
-        transaction.type === 'sell' || transaction.type === 'check',
+        transaction.type === 'Venta' || transaction.type === 'Cambio de cheque',
     );
   }
 
@@ -683,7 +683,7 @@ export class TransactionService {
     date: Date,
   ): Promise<Transaction[]> {
     const transactions = await this.getTransactionsForDay(subOfficeId, date);
-    return transactions.filter((transaction) => transaction.type === 'buy');
+    return transactions.filter((transaction) => transaction.type === 'Compra');
   }
 
   // Método para desarrollo, usar con precaución

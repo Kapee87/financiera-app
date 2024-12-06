@@ -42,7 +42,7 @@ export class CreateTransactionDto {
   @IsMongoId()
   targetCurrency: Types.ObjectId;
 
-  @IsEnum(['buy', 'sell', 'check', 'exchange'])
+  @IsEnum(['Compra', 'Venta', 'Cambio de cheque', 'exchange'])
   type: string;
 
   @IsNumber()
@@ -57,16 +57,16 @@ export class CreateTransactionDto {
   commission?: number;
 
   // Campos para cheques
-  @ValidateIf((o) => o.type === 'check')
+  @ValidateIf((o) => o.type === 'Cambio de cheque')
   @IsString()
   @IsNotEmpty()
   checkNumber?: string;
 
-  @ValidateIf((o) => o.type === 'check')
+  @ValidateIf((o) => o.type === 'Cambio de cheque')
   @IsDateString()
   checkDueDate?: String;
 
-  @ValidateIf((o) => o.type === 'check')
+  @ValidateIf((o) => o.type === 'Cambio de cheque')
   @IsString()
   @IsNotEmpty()
   bankName?: string;
