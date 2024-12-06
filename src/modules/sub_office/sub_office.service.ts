@@ -100,7 +100,7 @@ export class SubOfficeService {
       .populate({
         path: 'users',
         model: 'User',
-        select: 'name _id email',
+        select: '_id username email',
       })
       .exec();
   }
