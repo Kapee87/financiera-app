@@ -114,7 +114,21 @@ export class MovementService {
   async findByFilter(movementFilterDto): Promise<Movement[]> {
     console.log(movementFilterDto);
     try {
-      const movements = await this.movementModel.find(movementFilterDto).exec();
+      const movements = await this.movementModel
+        .find(movementFilterDto)
+        .populate({
+          path: 'user',
+          select: '_id username email',
+        })
+        .populate({
+          path: 'sub_office',
+          select: '_id name',
+        })
+        .populate({
+          path: 'currency',
+          select: '_id name code',
+        })
+        .exec();
       return movements;
     } catch (error) {
       throw new NotFoundException(error.message);
