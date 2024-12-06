@@ -68,18 +68,18 @@ export class TransactionController {
   }
 
   /**
-   * Actualiza una transacción
+   * Actualiza una transacción | NO APLICA SE DEJA PARA PRUEBAS
    * @param id ID de la transacción a actualizar
    * @param transactionData Datos de la transacción a actualizar
    * @returns La transacción actualizada
    */
-  @Put(':id')
+  /* @Put(':id')
   update(
     @Param('id') id: string | Types.ObjectId,
     @Body() transactionData: Partial<Transaction>,
   ) {
     return this.transactionService.update(id, transactionData);
-  }
+  } */
 
   /**
    * Elimina una transacción

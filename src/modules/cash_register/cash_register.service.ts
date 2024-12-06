@@ -24,12 +24,19 @@ import {
 } from 'src/schemas/transaction.schema';
 import { Movement, MovementDocument } from 'src/schemas/movement.schema';
 import { SubOffice } from 'src/schemas/sub_office.schema';
+import { MovementService } from '../movements/movements.service';
+import { cashRegisterFilterDto } from 'src/dtos/cash-register-filter.dto';
 
 interface CurrencyTotals {
   totalIncomeUSD: number;
   totalExpensesUSD: number;
   checkIncomeUSD: number;
 }
+type CombinedItem = Transaction &
+  Movement & {
+    createdAt?: Date;
+    date?: Date;
+  };
 
 @Injectable()
 export class CashRegisterService {
@@ -40,8 +47,7 @@ export class CashRegisterService {
     private transactionModel: Model<TransactionDocument>,
     @InjectModel(Movement.name)
     private movementModel: Model<MovementDocument>,
-    @Inject(forwardRef(() => TransactionService))
-    private transactionService: TransactionService,
+
     @Inject(forwardRef(() => CurrencyService))
     private currencyService: CurrencyService,
     @Inject(forwardRef(() => SubOfficeService))
@@ -464,5 +470,71 @@ export class CashRegisterService {
         `Error al verificar si la caja está abierta: ${error.message}`,
       );
     }
+  }
+
+  async getTransactionsAndMovementsForDay(
+    subOfficeId: string | Types.ObjectId,
+    cashRegisterFilterDto: cashRegisterFilterDto,
+  ): Promise<any> {
+    const transactions = await this.transactionModel
+      .find({
+        subOffice: subOfficeId,
+        $or: [
+          {
+            sourceCurrency: cashRegisterFilterDto.currencyId || {
+              $exists: true,
+            },
+          },
+          {
+            targetCurrency: cashRegisterFilterDto.currencyId || {
+              $exists: true,
+            },
+          },
+        ],
+        ...(cashRegisterFilterDto.userId && {
+          user: cashRegisterFilterDto.userId,
+        }),
+        createdAt: {
+          $gte: this.truncateDate(new Date()).toISOString(),
+          $lt: this.getNextDay(new Date()).toISOString(),
+        },
+      })
+      .populate('user', '_id username email')
+      .populate('sourceCurrency', '_id name')
+      .populate('targetCurrency', '_id name')
+      .lean();
+    const movements = await this.movementModel
+      .find({
+        sub_office: subOfficeId,
+        $or: [
+          {
+            currency: cashRegisterFilterDto.currencyId || { $exists: true },
+          },
+        ],
+        ...(cashRegisterFilterDto.userId && {
+          user: cashRegisterFilterDto.userId,
+        }),
+        date: {
+          $gte: this.truncateDate(new Date()).toISOString(),
+          $lt: this.getNextDay(new Date()).toISOString(),
+        },
+      })
+      .populate('user', '_id username email')
+      .populate('currency', '_id name')
+      .populate('sub_office', '_id name')
+      .lean();
+    const combinedItems = [
+      ...transactions.map((t) => ({ ...t, sortDate: t.createdAt })),
+      ...movements.map((m) => ({ ...m, sortDate: m.date })),
+    ];
+    return combinedItems
+      .sort(
+        (a, b) =>
+          new Date(b.sortDate).getTime() - new Date(a.sortDate).getTime(),
+      )
+      .map((item) => {
+        const { sortDate, ...rest } = item;
+        return rest;
+      });
   }
 }

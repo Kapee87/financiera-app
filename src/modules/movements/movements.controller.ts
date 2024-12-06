@@ -48,6 +48,8 @@ export class MovementController {
     return this.movementService.getMovementsByType(category);
   }
 
+  /*  ----/ Se deja por si se necesita para hacer pruebas /-----
+
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -59,7 +61,7 @@ export class MovementController {
       );
     }
     return this.movementService.update(id, updateMovementDto);
-  }
+  } */
 
   @Delete(':id')
   async remove(@Param('id') id: string) {

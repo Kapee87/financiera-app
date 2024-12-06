@@ -19,6 +19,7 @@ import {
 } from 'src/schemas/cash_registers.schema';
 import { Types } from 'mongoose';
 import { CloseCashRegisterDto } from 'src/dtos/close-cash-register.dto';
+import { cashRegisterFilterDto } from 'src/dtos/cash-register-filter.dto';
 
 @Controller('cash-register')
 export class CashRegisterController {
@@ -85,6 +86,17 @@ export class CashRegisterController {
   @Get('/by-id/:id')
   findById(@Param('id') id: string | Types.ObjectId): Promise<CashRegister> {
     return this.cashRegisterService.findById(id);
+  }
+
+  @Get(':subOfficeId/transaction-and-movements-for-day/')
+  getTransactionsAndMovementsForDay(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Body() cashRegisterFilterDto: cashRegisterFilterDto,
+  ) {
+    return this.cashRegisterService.getTransactionsAndMovementsForDay(
+      subOfficeId,
+      cashRegisterFilterDto,
+    );
   }
 
   @Delete()

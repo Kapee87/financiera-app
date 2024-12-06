@@ -15,6 +15,7 @@ import { SubOfficeModule } from '../sub_office/sub_office.module';
 import { TransactionModule } from '../transaction/transaction.module';
 import { Movement, MovementSchema } from 'src/schemas/movement.schema';
 import { Transaction, TransactionSchema } from 'src/schemas/transaction.schema';
+import { MovementModule } from '../movements/movements.module';
 
 @Module({
   imports: [

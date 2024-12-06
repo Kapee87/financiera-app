@@ -20,5 +20,6 @@ import { CashRegisterModule } from '../cash_register/cash-register.module';
   ],
   controllers: [MovementController],
   providers: [MovementService],
+  exports: [MovementService],
 })
 export class MovementModule {}
