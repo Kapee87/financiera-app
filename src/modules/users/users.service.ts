@@ -25,6 +25,7 @@ import { ConfigService } from '@nestjs/config';
 import { EnumStatus } from 'src/utils/enums/status.enum';
 import { User } from 'src/schemas/user.schema';
 import { Roles } from 'src/utils/enums/roles.enum';
+import { updateUserDto } from 'src/dtos/update-user.dto';
 
 /**
  * Clase que implementa el servicio para la gestión de usuarios
@@ -139,7 +140,7 @@ export class UsersService {
    */
   async updateUser(
     id: string | Types.ObjectId,
-    user: Partial<userDto>,
+    user: Partial<updateUserDto>,
   ): Promise<User> {
     const userId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
     try {

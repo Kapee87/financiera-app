@@ -32,6 +32,7 @@ import { AdminGuard } from 'src/guards/admin-guard';
 import { Roles } from 'src/utils/enums/roles.enum';
 import { JwtService } from '@nestjs/jwt';
 import { Types } from 'mongoose';
+import { updateUserDto } from 'src/dtos/update-user.dto';
 
 @Controller('users')
 // @UseGuards(IsActiveGuard, JwtAuthGuard)
@@ -144,11 +145,11 @@ export class UsersController {
    * @returns - El usuario actualizado
    */
   @Put('update-user/:id')
-  @UseGuards(AdminGuard)
-  updateUser(@Param('id') id: string | Types.ObjectId, @Body() user: userDto) {
-    if (user.role !== Roles.User) {
-      throw new ConflictException('Sin permiso para modificar este usuario');
-    }
+  /* @UseGuards(AdminGuard) */
+  updateUser(
+    @Param('id') id: string | Types.ObjectId,
+    @Body() user: Partial<updateUserDto>,
+  ) {
     return this.usersService.updateUser(id, user);
   }
 
