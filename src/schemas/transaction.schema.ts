@@ -70,7 +70,7 @@ export class Transaction {
   @Prop({ type: Number })
   commission?: number;
 
-  @Prop({ enum: ['Compra', 'Venta', 'exchange', 'Cambio de cheque'], required: true })
+  @Prop({ enum: ['Compra', 'Venta', 'Cambio de cheque'], required: true })
   type: string;
 
   @Prop({

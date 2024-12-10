@@ -18,12 +18,14 @@ import {
   Body,
   InternalServerErrorException,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 
 import { Transaction } from 'src/schemas/transaction.schema';
 import { CreateTransactionDto } from 'src/dtos/create-transaction.dto';
 import { Types } from 'mongoose';
+import { AdminGuard } from 'src/guards/admin-guard';
 
 /**
  * Controlador para la gestión de transacciones
@@ -95,6 +97,7 @@ export class TransactionController {
    * Elimina todas las transacciones
    * @returns Un mensaje indicando que se han eliminado todas las transacciones
    */
+  // @UseGuards(AdminGuard)
   @Delete()
   deleteAllForDevelopment() {
     return this.transactionService.deleteAllForDevelopment();

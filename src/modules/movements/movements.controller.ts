@@ -8,12 +8,14 @@ import {
   Param,
   Delete,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 
 import { CreateMovementDto } from 'src/dtos/create-movement.dto';
 import { UpdateMovementDto } from 'src/dtos/update-movement.dto';
 import { MovementService } from './movements.service';
 import { MovementFilterDto } from 'src/dtos/movement-filter.dto';
+import { AdminGuard } from 'src/guards/admin-guard';
 
 @Controller('movements')
 export class MovementController {
@@ -29,7 +31,7 @@ export class MovementController {
     return this.movementService.findAll();
   }
 
-  @Get('/filter/')
+  @Post('/filter/')
   findByFilter(@Body() movementFilterDto: MovementFilterDto) {
     return this.movementService.findByFilter(movementFilterDto);
   }
@@ -63,6 +65,7 @@ export class MovementController {
     return this.movementService.update(id, updateMovementDto);
   } */
 
+  // @UseGuards(AdminGuard)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     try {

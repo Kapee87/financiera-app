@@ -8,7 +8,7 @@
  * @property {ObjectId} subOffice - Identificador de la suboficina en la que se realiza la transacción
  * @property {ObjectId} sourceCurrency - Identificador de la moneda fuente de la transacción
  * @property {ObjectId} targetCurrency - Identificador de la moneda destino de la transacción
- * @property {string} type - Tipo de transacción (buy, sell, check, exchange)
+ * @property {string} type - Tipo de transacción (Compra, Venta, Cambio de cheques)
  * @property {number} amount - Monto de la transacción
  * @property {number} exchangeRate - Tasa de cambio de la moneda (opcional)
  * @property {number} commission - Comisión de la transacción (opcional)
@@ -42,7 +42,7 @@ export class CreateTransactionDto {
   @IsMongoId()
   targetCurrency: Types.ObjectId;
 
-  @IsEnum(['Compra', 'Venta', 'Cambio de cheque', 'exchange'])
+  @IsEnum(['Compra', 'Venta', 'Cambio de cheque'])
   type: string;
 
   @IsNumber()
