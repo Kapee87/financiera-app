@@ -678,6 +678,32 @@ export class TransactionService {
     }
   }
 
+  async getTransactionsForDateRange(
+    subOfficeId: string | Types.ObjectId,
+    dateFrom: Date,
+    dateTo: Date,
+  ): Promise<Transaction[]> {
+    if (!Types.ObjectId.isValid(subOfficeId)) {
+      throw new BadRequestException('El ID de la sub-oficina no es válido');
+    }
+    try {
+      return await this.transactionModel
+        .find({
+          subOffice: subOfficeId,
+          createdAt: {
+            $gte: dateFrom,
+            $lte: dateTo,
+          },
+        })
+        .lean()
+        .exec();
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error al obtener las transacciones',
+      );
+    }
+  }
+
   async getSalesAndChecksForDay(
     subOfficeId: string | Types.ObjectId,
     date: Date,
@@ -685,7 +711,8 @@ export class TransactionService {
     const transactions = await this.getTransactionsForDay(subOfficeId, date);
     return transactions.filter(
       (transaction) =>
-        transaction.type === 'Compra' || transaction.type === 'Cambio de cheque',
+        transaction.type === 'Compra' ||
+        transaction.type === 'Cambio de cheque',
     );
   }
 

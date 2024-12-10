@@ -50,7 +50,7 @@ import { TransactionController } from './transaction.controller';
  * @property {number} targetAmount - Monto de la transacción en la moneda destino
  * @property {number} exchangeRate - Tasa de cambio de la transacción
  * @property {number} [commission] - Comisión de la transacción (opcional)
- * @property {string} type - Tipo de transacción (buy, sell o exchange)
+ * @property {string} type - Tipo de transacción (Compra, Venta, Cambio de cheque)
  */
 import { Transaction, TransactionSchema } from 'src/schemas/transaction.schema';
 

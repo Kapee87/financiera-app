@@ -336,7 +336,7 @@ export class TransactionService {
    * Maneja la caja de la sucursal correspondiente
    *
    * @param subOfficeId Identificador de la sucursal
-   * @param type Tipo de transacción (buy, sell o exchange)
+   * @param type Tipo de transacción (Compra, Venta, Cambio de cheque)
    * @param sourceAmount Monto de la moneda fuente
    * @param targetAmount Monto de la moneda destino
    * @param exchangeRate Tasa de cambio

@@ -123,6 +123,20 @@ export class TransactionController {
   ) {
     return this.transactionService.getTransactionsForMonth(subOfficeId, date);
   }
+
+  @Get(':subOfficeId/dateRange/:dateFrom/:dateTo')
+  getTransactionsForDateRange(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Param('dateFrom') dateFrom: Date,
+    @Param('dateTo') dateTo: Date,
+  ) {
+    return this.transactionService.getTransactionsForDateRange(
+      subOfficeId,
+      dateFrom,
+      dateTo,
+    );
+  }
+
   @Get(':subOfficeId/TotalSalesForDay/:date')
   getTotalSalesForDay(
     @Param('subOfficeId') subOfficeId: string | Types.ObjectId,

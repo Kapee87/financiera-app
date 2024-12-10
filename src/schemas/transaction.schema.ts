@@ -22,7 +22,7 @@
  * @property {string} [bankName] - Nombre del banco (opcional)
  * @property {number} [checkCommission] - Comisión de cheque (opcional)
  * @property {Date} createdAt - Fecha de creación de la transacción
- * * @property {string} type - Tipo de transacción (buy, sell o exchange)
+ * * @property {string} type - Tipo de transacción (Compra, Venta, Cambio de cheque)
  */
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';

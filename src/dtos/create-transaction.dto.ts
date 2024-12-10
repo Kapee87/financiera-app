@@ -12,9 +12,9 @@
  * @property {number} amount - Monto de la transacción
  * @property {number} exchangeRate - Tasa de cambio de la moneda (opcional)
  * @property {number} commission - Comisión de la transacción (opcional)
- * @property {string} checkNumber - Número de cheque (opcional, solo para transacciones de tipo "check")
- * @property {Date} checkDueDate - Fecha de vencimiento del cheque (opcional, solo para transacciones de tipo "check")
- * @property {string} bankName - Nombre del banco (opcional, solo para transacciones de tipo "check")
+ * @property {string} checkNumber - Número de cheque (opcional, solo para transacciones de tipo "Cambio de cheque")
+ * @property {Date} Cambio de chequeDueDate - Fecha de vencimiento del cheque (opcional, solo para transacciones de tipo "Cambio de cheque")
+ * @property {string} bankName - Nombre del banco (opcional, solo para transacciones de tipo "Cambio de cheque")
  */
 import {
   IsEnum,
@@ -42,7 +42,10 @@ export class CreateTransactionDto {
   @IsMongoId()
   targetCurrency: Types.ObjectId;
 
-  @IsEnum(['Compra', 'Venta', 'Cambio de cheque'])
+  @IsEnum(['Compra', 'Venta', 'Cambio de cheque'], {
+    message:
+      'El tipo de transacción debe ser "Compra", "Venta" o "Cambio de cheque"',
+  })
   type: string;
 
   @IsNumber()
