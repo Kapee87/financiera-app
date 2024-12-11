@@ -14,6 +14,10 @@ export class BalanceService {
 
   async findOne(id: string): Promise<Balance> {
     return this.balanceModel.findById(id).exec();
-  } 
-  
+  }
+
+  async calculateBalance(): Promise<Balance> {
+    
+    return;
+  }
 }
