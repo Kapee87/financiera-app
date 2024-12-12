@@ -53,6 +53,10 @@ export class Movement {
 
   @Prop({ type: Types.ObjectId, ref: 'Currency', required: true })
   currency: string;
+
+  @Prop({ type: Date })
+  createdAt: Date;
+  
 }
 
 export const MovementSchema = SchemaFactory.createForClass(Movement);

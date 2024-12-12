@@ -26,8 +26,9 @@ import { Movement, MovementDocument } from 'src/schemas/movement.schema';
 import { SubOffice } from 'src/schemas/sub_office.schema';
 import { MovementService } from '../movements/movements.service';
 import { cashRegisterFilterDto } from 'src/dtos/cash-register-filter.dto';
+import { truncateDate } from 'src/utils/utilFunctions/utils';
 
-interface CurrencyTotals {
+export interface CurrencyTotals {
   totalIncomeUSD: number;
   totalExpensesUSD: number;
   checkIncomeUSD: number;
@@ -53,19 +54,6 @@ export class CashRegisterService {
     @Inject(forwardRef(() => SubOfficeService))
     private subOfficeService: SubOfficeService,
   ) {}
-
-  private truncateDate(date: Date | string): Date {
-    const parseDate = new Date(date);
-    return new Date(
-      parseDate.getUTCFullYear(),
-      parseDate.getUTCMonth(),
-      parseDate.getUTCDate(),
-      0,
-      0,
-      0,
-      0,
-    );
-  }
 
   private getNextDay(date: Date): Date {
     const nextDay = new Date(date);
@@ -101,10 +89,10 @@ export class CashRegisterService {
 
       let registerDate: Date;
       if (!createCashRegisterDto.date) {
-        registerDate = this.truncateDate(new Date());
+        registerDate = truncateDate(new Date());
       } else {
         try {
-          registerDate = this.truncateDate(createCashRegisterDto.date);
+          registerDate = truncateDate(createCashRegisterDto.date);
         } catch (error) {
           throw new BadRequestException(
             'Formato de fecha inválido. Use YYYY-MM-DD',
@@ -136,12 +124,13 @@ export class CashRegisterService {
     }
   }
 
-  private async calculateTransactionTotals(
+  async calculateTransactionTotals(
     subOfficeId: string | Types.ObjectId,
     date: Date,
     usdRate: number,
   ): Promise<CurrencyTotals> {
     const nextDay = this.getNextDay(date);
+    date = truncateDate(date);
 
     const transactions = await this.transactionModel
       .find({
@@ -149,6 +138,9 @@ export class CashRegisterService {
         createdAt: { $gte: date, $lt: nextDay },
       })
       .populate(['sourceCurrency', 'targetCurrency']);
+    console.log('transactions', transactions);
+    console.log('today', date);
+    console.log('nextDay', nextDay);
 
     let totalIncomeUSD = 0;
     let totalExpensesUSD = 0;
@@ -195,16 +187,17 @@ export class CashRegisterService {
     };
   }
 
-  private async calculateMovementTotals(
+  async calculateMovementTotals(
     subOfficeId: string | Types.ObjectId,
     date: Date,
     usdRate: number,
   ): Promise<{ incomeUSD: number; expensesUSD: number }> {
     const nextDay = this.getNextDay(date);
+    date = truncateDate(date);
 
     const movements = await this.movementModel
       .find({
-        sub_office: subOfficeId,
+        sub_office: subOfficeId.toString(),
         date: { $gte: date, $lt: nextDay },
       })
       .populate('currency');
@@ -368,7 +361,7 @@ export class CashRegisterService {
     amount: number,
     session: any,
   ): Promise<void> {
-    const today = this.truncateDate(new Date());
+    const today = truncateDate(new Date());
     const tomorrow = this.getNextDay(today);
     console.log(typeof subOfficeId);
     const sub_office_id =
@@ -380,8 +373,8 @@ export class CashRegisterService {
       .findOne({
         sub_office: subOfficeId,
         date: {
-          $gte: this.truncateDate(today).toISOString(),
-          $lt: this.truncateDate(tomorrow).toISOString(),
+          $gte: truncateDate(today).toISOString(),
+          $lt: truncateDate(tomorrow).toISOString(),
         },
       })
       .session(session);
@@ -398,7 +391,7 @@ export class CashRegisterService {
   async getCurrentCashRegisterForSubOffice(
     subOfficeId: string | Types.ObjectId,
   ): Promise<CashRegisterDocument | null> {
-    const today = this.truncateDate(new Date());
+    const today = truncateDate(new Date());
     const tomorrow = this.getNextDay(today);
 
     return this.cashRegisterModel
@@ -413,7 +406,7 @@ export class CashRegisterService {
   }
   async getCashRegisterByDate(dateStr: string): Promise<CashRegister> {
     try {
-      const date = this.truncateDate(dateStr);
+      const date = truncateDate(dateStr);
       const nextDay = this.getNextDay(date);
 
       return this.cashRegisterModel
@@ -452,7 +445,7 @@ export class CashRegisterService {
   }
 
   async isCashRegisterOpen(subOfficeId: string): Promise<boolean> {
-    const today = this.truncateDate(new Date());
+    const today = truncateDate(new Date());
     const tomorrow = this.getNextDay(today);
 
     try {
@@ -495,7 +488,7 @@ export class CashRegisterService {
           user: cashRegisterFilterDto.userId,
         }),
         createdAt: {
-          $gte: this.truncateDate(new Date()).toISOString(),
+          $gte: truncateDate(new Date()).toISOString(),
           $lt: this.getNextDay(new Date()).toISOString(),
         },
       })
@@ -515,7 +508,7 @@ export class CashRegisterService {
           user: cashRegisterFilterDto.userId,
         }),
         date: {
-          $gte: this.truncateDate(new Date()).toISOString(),
+          $gte: truncateDate(new Date()).toISOString(),
           $lt: this.getNextDay(new Date()).toISOString(),
         },
       })

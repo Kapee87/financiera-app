@@ -12,7 +12,7 @@ import {
 
 import { CreateCashRegisterDto } from '../../dtos/create-cash-register.dto';
 import { UpdateCashRegisterDto } from '../../dtos/update-cash-register.dto';
-import { CashRegisterService } from './cash_register.service';
+import { CashRegisterService, CurrencyTotals } from './cash_register.service';
 import {
   CashRegister,
   CashRegisterDocument,
@@ -96,6 +96,31 @@ export class CashRegisterController {
     return this.cashRegisterService.getTransactionsAndMovementsForDay(
       subOfficeId,
       cashRegisterFilterDto,
+    );
+  }
+  @Post(':subOfficeId/total-transactions-for-day/')
+  getTotalTransactionsForDay(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Body('usd_rate') usdRate: number,
+  ): Promise<CurrencyTotals> {
+    const today = new Date();
+    return this.cashRegisterService.calculateTransactionTotals(
+      subOfficeId,
+      today,
+      usdRate,
+    );
+  }
+
+  @Post(':subOfficeId/total-movements-for-day/')
+  getTotalMovementsForDay(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Body('usd_rate') usdRate: number,
+  ): Promise<{ incomeUSD: number; expensesUSD: number }> {
+    const today = new Date();
+    return this.cashRegisterService.calculateMovementTotals(
+      subOfficeId,
+      today,
+      usdRate,
     );
   }
 

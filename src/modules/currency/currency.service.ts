@@ -103,6 +103,15 @@ export class CurrencyService {
   ): Promise<Currency> {
     try {
       const currencyId = typeof id === 'string' ? new Types.ObjectId(id) : id;
+      if (currencyData.isPrimaryCurrency) {
+        await this.currencyModel.updateMany(
+          {
+            isPrimaryCurrency: true,
+            _id: { $ne: id },
+          },
+          { $set: { isPrimaryCurrency: false } }, // Desmarcar otras monedas
+        );
+      }
       const updatedCurrency = await this.currencyModel
         .findByIdAndUpdate(currencyId, currencyData, { new: true })
         .exec();
@@ -155,6 +164,9 @@ export class CurrencyService {
     const primaryCurrencyUpdate = updates.find(
       (update) => update.isprimarycurrency === true,
     );
+    console.log('primaryCurrencyUpdate', primaryCurrencyUpdate);
+    console.log('updates', updates);
+
     if (primaryCurrencyUpdate) {
       await this.currencyModel.updateMany(
         {

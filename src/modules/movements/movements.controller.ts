@@ -26,14 +26,14 @@ export class MovementController {
     return this.movementService.create(createMovementDto);
   }
 
-  @Get()
-  findAll() {
-    return this.movementService.findAll();
-  }
-
   @Post('/filter/')
   findByFilter(@Body() movementFilterDto: MovementFilterDto) {
     return this.movementService.findByFilter(movementFilterDto);
+  }
+
+  @Get()
+  findAll() {
+    return this.movementService.findAll();
   }
 
   @Get(':id')
@@ -50,21 +50,6 @@ export class MovementController {
     return this.movementService.getMovementsByType(category);
   }
 
-  /*  ----/ Se deja por si se necesita para hacer pruebas /-----
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateMovementDto: UpdateMovementDto,
-  ) {
-    if (updateMovementDto.amount || updateMovementDto.type) {
-      throw new BadRequestException(
-        'No se pueden actualizar los campos amount y type, en su lugar elimine el movimiento y cree uno nuevo',
-      );
-    }
-    return this.movementService.update(id, updateMovementDto);
-  } */
-
   // @UseGuards(AdminGuard)
   @Delete(':id')
   async remove(@Param('id') id: string) {
@@ -80,4 +65,19 @@ export class MovementController {
   async removeAll() {
     return this.movementService.removeAll();
   }
+
+  /*  ----/ Se deja por si se necesita para hacer pruebas /-----
+  
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() updateMovementDto: UpdateMovementDto,
+  ) {
+    if (updateMovementDto.amount || updateMovementDto.type) {
+      throw new BadRequestException(
+        'No se pueden actualizar los campos amount y type, en su lugar elimine el movimiento y cree uno nuevo',
+      );
+    }
+    return this.movementService.update(id, updateMovementDto);
+  } */
 }
