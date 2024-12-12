@@ -7,6 +7,7 @@ import { Movement, MovementDocument } from 'src/schemas/movement.schema';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { SubOfficeService } from '../sub_office/sub_office.service';
 import { CashRegisterService } from '../cash_register/cash_register.service';
+import { MovementFilterDto } from 'src/dtos/movement-filter.dto';
 
 @Injectable()
 export class MovementService {
@@ -114,8 +115,14 @@ export class MovementService {
   async findByFilter(movementFilterDto): Promise<Movement[]> {
     console.log(movementFilterDto);
     try {
+      const normalizedFilter = this.normalizeFilter(movementFilterDto);
+      if (Object.keys(normalizedFilter).length === 0) {
+        throw new BadRequestException(
+          'No se encontraron filtros para la busqueda',
+        );
+      }
       const movements = await this.movementModel
-        .find(movementFilterDto)
+        .find(normalizedFilter)
         .populate({
           path: 'user',
           select: '_id username email',
@@ -225,5 +232,23 @@ export class MovementService {
   async removeAll() {
     await this.movementModel.deleteMany({}).exec();
     return { message: 'Deleted all movements' };
+  }
+  private normalizeFilter(filter: MovementFilterDto): any {
+    if (filter.type) {
+      filter.type = filter.type.toLowerCase();
+    }
+    if (filter.description) {
+      filter.description = filter.description.toLowerCase();
+    }
+    if (filter.currency) {
+      filter.currency = filter.currency.toLowerCase();
+    }
+    if (filter.subOffice) {
+      filter.subOffice = filter.subOffice.toLowerCase();
+    }
+    if (filter.user) {
+      filter.user = filter.user.toLowerCase();
+    }
+    return filter;
   }
 }

@@ -13,7 +13,13 @@
  * @property {ObjectId} user - usuario que realizó el movimiento
  * @property {ObjectId} currency - Moneda en la que se realizó el movimiento
  */
-import { IsMongoId, IsNotEmpty, IsEnum, IsNumber } from 'class-validator';
+import {
+  IsMongoId,
+  IsNotEmpty,
+  IsEnum,
+  IsNumber,
+  IsLowercase,
+} from 'class-validator';
 
 export class CreateMovementDto {
   @IsMongoId()
@@ -32,6 +38,7 @@ export class CreateMovementDto {
   category: 'ingreso' | 'egreso';
 
   @IsNotEmpty()
+  @IsLowercase()
   type: string;
 
   @IsMongoId()
