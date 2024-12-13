@@ -88,7 +88,7 @@ export class CashRegisterController {
     return this.cashRegisterService.findById(id);
   }
 
-  @Get(':subOfficeId/transaction-and-movements-for-day/')
+  @Post(':subOfficeId/transaction-and-movements-for-day/')
   getTransactionsAndMovementsForDay(
     @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
     @Body() cashRegisterFilterDto: cashRegisterFilterDto,
