@@ -9,6 +9,7 @@ import {
   Put,
   NotFoundException,
   Patch,
+  UsePipes,
 } from '@nestjs/common';
 import { CreateClientDto } from 'src/dtos/create-client.dto';
 import { UpdateClientDto } from 'src/dtos/update-client.dto';
@@ -42,8 +43,6 @@ export class ClientsController {
     @Param('id') id: string | Types.ObjectId,
     @Body() updateClientDto: Partial<UpdateClientDto>,
   ) {
-    console.log(updateClientDto);
-
     return this.clientsService.update(id, updateClientDto);
   }
 

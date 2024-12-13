@@ -1,6 +1,10 @@
 /* eslint-disable */
 /* eslint-disable */
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CreateClientDto } from 'src/dtos/create-client.dto';
@@ -11,6 +15,7 @@ import {
   OperationType,
   UpdateClientArraysDto,
 } from 'src/dtos/update-client-array.dto';
+import e from 'express';
 
 @Injectable()
 export class ClientsService {
@@ -58,10 +63,41 @@ export class ClientsService {
     updateClientDto: Partial<UpdateClientDto>,
   ): Promise<Client> {
     const clientId = id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
-    console.log(updateClientDto);
+    const client = await this.clientModel.findById(clientId).exec();
+    const moneyFields = ['money', 'addMoney', 'subtractMoney'];
+
+    Object.keys(updateClientDto).forEach((key) => {
+      if (key.includes('oney') && !moneyFields.includes(key)) {
+        throw new BadRequestException(`El campo ${key} no es válido`);
+      }
+    });
+
+    if (!client) {
+      throw new NotFoundException(`Client with ID ${id} not found`);
+    }
+
+    if (
+      !updateClientDto.money &&
+      updateClientDto.addMoney &&
+      client.money &&
+      !updateClientDto.subtractMoney
+    ) {
+      updateClientDto.money = client.money + updateClientDto.addMoney;
+    } else if (
+      !updateClientDto.money &&
+      updateClientDto.subtractMoney &&
+      client.money &&
+      !updateClientDto.addMoney
+    ) {
+      updateClientDto.money = client.money - updateClientDto.subtractMoney;
+    } else {
+      throw new BadRequestException(
+        `El campo money no puede estar vacio o no pueden haber 2 operaciónes de dinero al mismo tiempo`,
+      );
+    }
 
     return this.clientModel
-      .findByIdAndUpdate(clientId, updateClientDto, { new: true })
+      .findOneAndUpdate({ _id: clientId }, updateClientDto, { new: true })
       .exec();
   }
 

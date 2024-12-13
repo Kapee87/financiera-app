@@ -32,53 +32,65 @@ export class UpdateClientDto {
    * Nueva contraseña del cliente
    */
   @Prop()
-  password?: string;
+  password: string;
 
   /**
    * Dinero que el cliente tiene en la cuenta
    */
   @Prop({ type: Number, default: 0 })
-  money?: number;
+  money: number;
+
+  /**
+   * Dinero a sumar en la cuenta del cliente
+   */
+  @Prop({ type: Number, default: 0 })
+  addMoney: number;
+
+  /**
+   * Dinero a restar en la cuenta del cliente
+   */
+  @Prop({ type: Number, default: 0 })
+  subtractMoney: number;
 
   /**
    * Total de deudas del cliente
    */
   @Prop({ type: Number, default: 0 })
-  totalDebts?: number;
+  totalDebts: number;
 
   /**
    * Total de pagos del cliente
    */
   @Prop({ type: Number, default: 0 })
-  totalPayments?: number;
+  totalPayments: number;
 
   /**
    * Teléfono del cliente
    */
   @Prop({ type: String, default: '' })
-  phone?: string;
+  phone: string;
 
   /**
    * Correo electrónico del cliente
    */
   @Prop({ type: String, default: '' })
-  mail?: string;
+  mail: string;
 
   /**
    * Transacciones realizadas por el cliente
    */
   @Prop({ type: [SchemaTypes.ObjectId], ref: 'Transaction', default: [] })
-  transactions?: string[];
+  transactions: string[];
 
   /**
    * Movimientos de caja realizados por el cliente
    */
   @Prop({ type: [SchemaTypes.ObjectId], ref: 'Movement', default: [] })
-  movements?: string[];
+  movements: string[];
 
   /**
    * Observaciones del cliente
    */
   @Prop({ type: [String], default: [] })
-  observations?: string[];
+  observations: string[];
 }
