@@ -138,9 +138,7 @@ export class CashRegisterService {
         createdAt: { $gte: date, $lt: nextDay },
       })
       .populate(['sourceCurrency', 'targetCurrency']);
-    console.log('transactions', transactions);
-    console.log('today', date);
-    console.log('nextDay', nextDay);
+    
 
     let totalIncomeUSD = 0;
     let totalExpensesUSD = 0;
