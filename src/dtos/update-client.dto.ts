@@ -33,13 +33,11 @@ export class UpdateClientDto {
    */
   @Prop()
   password: string;
-
   /**
    * Dinero que el cliente tiene en la cuenta
    */
   @Prop({ type: Number, default: 0 })
   money: number;
-
   /**
    * Dinero a sumar en la cuenta del cliente
    */
