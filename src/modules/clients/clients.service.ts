@@ -76,23 +76,15 @@ export class ClientsService {
       throw new NotFoundException(`Client with ID ${id} not found`);
     }
 
-    if (
-      !updateClientDto.money &&
-      updateClientDto.addMoney &&
-      client.money &&
-      !updateClientDto.subtractMoney
-    ) {
+    if (updateClientDto.addMoney && !updateClientDto.subtractMoney) {
       updateClientDto.money = client.money + updateClientDto.addMoney;
-    } else if (
-      !updateClientDto.money &&
-      updateClientDto.subtractMoney &&
-      client.money &&
-      !updateClientDto.addMoney
-    ) {
+    } else if (updateClientDto.subtractMoney && !updateClientDto.addMoney) {
       updateClientDto.money = client.money - updateClientDto.subtractMoney;
+    } else if (updateClientDto.money) {
+      updateClientDto.money = updateClientDto.money;
     } else {
       throw new BadRequestException(
-        `El campo money no puede estar vacio o no pueden haber 2 operaciónes de dinero al mismo tiempo`,
+        `No deben haber 2 operaciónes de dinero al mismo tiempo(addMoney | subtractMoney)`,
       );
     }
 

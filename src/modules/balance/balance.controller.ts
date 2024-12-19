@@ -1,9 +1,9 @@
 /* eslint-disable */
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { BalanceService } from './balance.service';
 import { Balance } from 'src/schemas/balance.schema';
 
-@Controller('balances')
+@Controller('balance')
 export class BalanceController {
   constructor(private readonly balanceService: BalanceService) {}
 
@@ -15,5 +15,18 @@ export class BalanceController {
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<Balance> {
     return this.balanceService.findOne(id);
+  }
+
+  @Post('calculate/:subOfficeId/:usdRate')
+  async calculateBalance(
+    @Param('subOfficeId') subOfficeId: string,
+    @Param('usdRate') usdRate: number,
+  ): Promise<Balance> {
+    return this.balanceService.calculateBalance(subOfficeId, usdRate);
+  }
+
+  @Delete('all')
+  async delete(): Promise<string> {
+    return this.balanceService.deleteAll();
   }
 }

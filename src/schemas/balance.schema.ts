@@ -20,17 +20,26 @@ export type BalanceDocument = Balance & Document;
   timestamps: true,
 })
 export class Balance {
-  @Prop({ type: Types.ObjectId })
-  _id: string;
-
   @Prop({ type: Types.ObjectId, required: true })
   subOffice: string;
 
-  @Prop({ type: Types.ObjectId, required: true })
-  currency: string;
+  @Prop({ type: Date, default: Date.now })
+  createdAt: Date;
 
   @Prop({ type: Number, default: 0 })
-  amount: number;
+  totalIncomeUSD: number;
+
+  @Prop({ type: Number, default: 0 })
+  totalExpensesUSD: number;
+
+  @Prop({ type: Number, default: 0 })
+  transactionsProfit: number;
+
+  @Prop({ type: Number, default: 0 })
+  currentStockUSD: number;
+
+  @Prop({ type: Number, default: 0 })
+  totalProfit: number;
 }
 
 export const BalanceSchema = SchemaFactory.createForClass(Balance);

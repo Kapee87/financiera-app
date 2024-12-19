@@ -138,7 +138,6 @@ export class CashRegisterService {
         createdAt: { $gte: date, $lt: nextDay },
       })
       .populate(['sourceCurrency', 'targetCurrency']);
-    
 
     let totalIncomeUSD = 0;
     let totalExpensesUSD = 0;
@@ -205,11 +204,11 @@ export class CashRegisterService {
 
     for (const movement of movements) {
       const currency = await this.currencyService.findOne(movement.currency);
-      const amountUSD = this.convertToUSD(
-        movement.amount,
-        currency.exchangeRate,
-        usdRate,
-      );
+
+      const amountUSD =
+        currency.name === 'Dólar estadounidense'
+          ? movement.amount
+          : this.convertToUSD(movement.amount, currency.exchangeRate, usdRate);
 
       if (movement.category === 'ingreso') {
         incomeUSD += amountUSD;
