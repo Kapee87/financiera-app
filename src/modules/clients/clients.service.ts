@@ -80,12 +80,13 @@ export class ClientsService {
       updateClientDto.money = client.money + updateClientDto.addMoney;
     } else if (updateClientDto.subtractMoney && !updateClientDto.addMoney) {
       updateClientDto.money = client.money - updateClientDto.subtractMoney;
-    } else if (updateClientDto.money) {
-      updateClientDto.money = updateClientDto.money;
-    } else {
+    } else if (updateClientDto.addMoney && updateClientDto.subtractMoney) {
       throw new BadRequestException(
         `No deben haber 2 operaciónes de dinero al mismo tiempo(addMoney | subtractMoney)`,
       );
+    }
+    if (updateClientDto.money) {
+      updateClientDto.money = updateClientDto.money;
     }
 
     return this.clientModel
