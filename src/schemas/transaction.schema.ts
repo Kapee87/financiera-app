@@ -80,6 +80,12 @@ export class Transaction {
   profitARS: number;
 
   @Prop({
+    type: Number,
+    default: 0,
+  })
+  cashRegisterExchangeRate: number;
+
+  @Prop({
     type: String,
     required: function () {
       return this.type === 'Cambio de cheque';

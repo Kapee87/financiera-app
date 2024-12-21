@@ -234,6 +234,7 @@ export class TransactionService {
           sourceAmount,
           targetAmount,
           profitARS: profit,
+          cashRegisterExchangeRate: currentCashRegister.rates.usd,
           ...(type === 'Cambio de cheque' && {
             checkNumber,
             checkDueDate,
@@ -393,15 +394,33 @@ export class TransactionService {
    * @returns La transacción encontrada o null si no existe
    */
   async findOne(id: string | Types.ObjectId): Promise<Transaction> {
+    console.log('service findOne id', id);
+    console.log('service findOne', typeof id);
+
     const transactionId =
       id instanceof Types.ObjectId ? id : new Types.ObjectId(id);
-    const transaction = await this.transactionModel
-      .findById(transactionId)
+    console.log('service findOne transactionId', transactionId);
+
+    const transactions = await this.transactionModel
+      .find({ _id: id })
+      .populate({
+        path: 'sourceCurrency',
+      })
+      .populate({
+        path: 'targetCurrency',
+      })
+      .populate({
+        path: 'subOffice',
+      })
+      .populate({
+        path: 'user',
+      })
       .exec();
+    const transaction = transactions[0];
     if (!transaction) {
       throw new NotFoundException(`Transaction with ID ${id} not found`);
     }
-    return this.populateTransactionData(transaction);
+    return transaction;
   }
 
   /**
@@ -548,7 +567,7 @@ export class TransactionService {
    */
   private async populateTransactionData(
     transaction: TransactionDocument,
-  ): Promise<Transaction> {
+  ): Promise<any> {
     const [userData, subOfficeData, sourceCurrencyData, targetCurrencyData] =
       await Promise.all([
         this.getUserData(transaction.user.toString()),
@@ -563,7 +582,9 @@ export class TransactionService {
       userName: userData.name,
       subOfficeName: subOfficeData.name,
       sourceCurrencyCode: sourceCurrencyData.code,
+      sourceCurrency: sourceCurrencyData,
       targetCurrencyCode: targetCurrencyData.code,
+      targetCurrency: targetCurrencyData,
     };
   }
   async getTransactionsForDay(

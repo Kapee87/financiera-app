@@ -50,6 +50,12 @@ export class ClientsService {
       .find()
       .populate('transactions')
       .populate('movements')
+      .populate({
+        path: 'transactions',
+        populate: {
+          path: 'sourceCurrency targetCurrency user subOffice',
+        },
+      })
       .exec();
   }
 
@@ -78,8 +84,20 @@ export class ClientsService {
 
     if (updateClientDto.addMoney && !updateClientDto.subtractMoney) {
       updateClientDto.money = client.money + updateClientDto.addMoney;
+      updateClientDto.totalPayments =
+        client.totalPayments + updateClientDto.addMoney;
+      if (client.money <= 0) {
+        updateClientDto.totalDebts =
+          client.totalDebts - updateClientDto.addMoney > 0
+            ? client.totalDebts - updateClientDto.addMoney
+            : 0;
+      }
     } else if (updateClientDto.subtractMoney && !updateClientDto.addMoney) {
       updateClientDto.money = client.money - updateClientDto.subtractMoney;
+      if (client.money <= 0) {
+        updateClientDto.totalDebts =
+          client.totalDebts + updateClientDto.subtractMoney;
+      }
     } else if (updateClientDto.addMoney && updateClientDto.subtractMoney) {
       throw new BadRequestException(
         `No deben haber 2 operaciónes de dinero al mismo tiempo(addMoney | subtractMoney)`,

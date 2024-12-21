@@ -8,8 +8,16 @@
  * @property {Number} opening_balance - Monto inicial de la caja de dinero
  * @property {ObjectId} sub_office - Suboficina a la que pertenece la caja de dinero
  */
-import { IsDate, IsMongoId, IsNumber, IsOptional } from 'class-validator';
+import {
+  IsDate,
+  IsMongoId,
+  IsNumber,
+  IsObject,
+  isObject,
+  IsOptional,
+} from 'class-validator';
 import { Type } from 'class-transformer';
+import { Prop } from '@nestjs/mongoose';
 
 export class CreateCashRegisterDto {
   /**
@@ -32,4 +40,10 @@ export class CreateCashRegisterDto {
    */
   @IsMongoId()
   sub_office: string;
+
+  /**
+   * Tasas de cambio de la caja de dinero
+   */
+  @IsObject()
+  rates: { usd: number; ars: number };
 }

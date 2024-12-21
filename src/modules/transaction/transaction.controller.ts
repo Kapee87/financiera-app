@@ -62,7 +62,7 @@ export class TransactionController {
    * @param id ID de la transacción a obtener
    * @returns La transacción obtenida
    */
-  @Get(':id')
+  @Get('by-id/:id')
   findOne(@Param('id') id: string | Types.ObjectId) {
     console.log('controller findOne', id);
 

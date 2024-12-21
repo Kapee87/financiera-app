@@ -74,7 +74,7 @@ export class CashRegister {
       usd: Number,
       ars: Number,
     },
-    default: null,
+    default: { usd: 0, ars: 1 },
   })
   rates: { usd: number; ars: number };
 }
