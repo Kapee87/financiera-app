@@ -8,7 +8,6 @@
  * @property {string} lastname - Apellido del cliente
  * @property {number} [money] - Dinero que el cliente tiene en la cuenta (opcional)
  * @property {number} [totalDebts] - Total de deudas del cliente (opcional)
- * @property {number} [totalPayments] - Total de pagos del cliente (opcional)
  * @property {string} [phone] - Tel fono del cliente (opcional)
  * @property {string} [mail] - Correo electr nico del cliente (opcional)
  * @property {string[]} [transactions] - Transacciones realizadas por el cliente (opcional)
@@ -51,13 +50,6 @@ export class CreateClientDto {
   @IsNumber()
   @IsOptional()
   totalDebts?: number;
-
-  /**
-   * Total de pagos del cliente (opcional)
-   */
-  @IsNumber()
-  @IsOptional()
-  totalPayments?: number;
 
   /**
    * Tel fono del cliente (opcional)

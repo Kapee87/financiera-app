@@ -30,7 +30,7 @@ export class ClientsService {
         lastname: createClientsDto.lastname,
         money: createClientsDto.money,
         totalDebts: createClientsDto.totalDebts,
-        totalPayments: createClientsDto.totalPayments,
+
         phone: createClientsDto.phone,
         mail: createClientsDto.mail,
         transactions: createClientsDto.transactions,
@@ -49,7 +49,12 @@ export class ClientsService {
     return this.clientModel
       .find()
       .populate('transactions')
-      .populate('movements')
+      .populate({
+        path: 'movements',
+        populate: {
+          path: 'sub_office user currency',
+        },
+      })
       .populate({
         path: 'transactions',
         populate: {
@@ -84,8 +89,6 @@ export class ClientsService {
 
     if (updateClientDto.addMoney && !updateClientDto.subtractMoney) {
       updateClientDto.money = client.money + updateClientDto.addMoney;
-      updateClientDto.totalPayments =
-        client.totalPayments + updateClientDto.addMoney;
       if (client.money <= 0) {
         updateClientDto.totalDebts =
           client.totalDebts - updateClientDto.addMoney > 0

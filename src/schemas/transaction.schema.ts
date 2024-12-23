@@ -86,6 +86,11 @@ export class Transaction {
   cashRegisterExchangeRate: number;
 
   @Prop({
+    type: Number,
+  })
+  totalInUsd: number;
+
+  @Prop({
     type: String,
     required: function () {
       return this.type === 'Cambio de cheque';

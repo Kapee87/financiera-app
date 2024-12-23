@@ -9,7 +9,6 @@
  * @property {string} lastname - Apellido del cliente
  * @property {number} money - Dinero que el cliente tiene en la cuenta
  * @property {number} totalDebts - Total de deudas del cliente
- * @property {number} totalPayments - Total de pagos del cliente
  * @property {string} phone - Teléfono del cliente
  * @property {string} mail - Correo electrónico del cliente
  * @property {ObjectId[]} transactions - Transacciones realizadas por el cliente
@@ -39,9 +38,6 @@ export class Client {
 
   @Prop({ type: Number, default: 0 })
   totalDebts?: number;
-
-  @Prop({ type: Number, default: 0 })
-  totalPayments?: number;
 
   @Prop({ type: String, default: '' })
   phone?: string;

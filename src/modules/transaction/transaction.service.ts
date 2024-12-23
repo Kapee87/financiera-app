@@ -26,8 +26,6 @@ import { CashRegisterService } from '../cash_register/cash_register.service';
 import { CreateTransactionDto } from 'src/dtos/create-transaction.dto';
 import { UsersService } from '../users/users.service';
 import { Connection } from 'mongoose';
-import { plainToInstance } from 'class-transformer';
-import { create } from 'domain';
 
 @Injectable()
 export class TransactionService {
@@ -150,14 +148,22 @@ export class TransactionService {
         if (
           sourceCurrencyData.isPrimaryCurrency &&
           (type === 'Compra' || type === 'Cambio de cheque')
-          // el cliente compra moneda con pago en ARS(incluye cambio de cheques)
         ) {
+          // el cliente compra moneda con pago en ARS(incluye cambio de cheques)
           targetAmount = amount; //cantidad que desea el cliente recibir
           sourceAmount = amount * exchangeRate; // cantidad que entrega el cliente
         } else if (targetCurrencyData.isPrimaryCurrency && type === 'Venta') {
           // el cliente vende moneda y se paga en ARS
           sourceAmount = amount; //cantidad que entrega el cliente
           targetAmount = amount * exchangeRate; // cantidad que desea el cliente recibir
+        } else if (type === 'Cambio de cheque' || type === 'Compra') {
+          // el cliente compra moneda con pago en moneda fuente
+          sourceAmount = amount * exchangeRate; //cantidad que entrega el cliente (el vendedor debe calcular la tasa de cambio entre monedas NO ARS)
+          targetAmount = amount; // cantidad que desea el cliente recibir
+        } else {
+          // el cliente vende moneda y se paga en moneda fuente
+          targetAmount = amount; // cantidad que entrega el cliente
+          sourceAmount = amount * exchangeRate; //cantidad que desea el cliente recibir (el vendedor debe calcular la tasa de cambio entre monedas NO ARS)
         }
 
         profit = this.calculateProfit(
@@ -235,6 +241,12 @@ export class TransactionService {
           targetAmount,
           profitARS: profit,
           cashRegisterExchangeRate: currentCashRegister.rates.usd,
+          totalInUsd: this.getTransactionUsdTotal(
+            targetAmount,
+            sourceAmount,
+            type,
+            exchangeRate,
+          ),
           ...(type === 'Cambio de cheque' && {
             checkNumber,
             checkDueDate,
@@ -751,5 +763,18 @@ export class TransactionService {
     console.log(transactions);
 
     return this.transactionModel.deleteMany({});
+  }
+
+  getTransactionUsdTotal(
+    targetAmount: number,
+    sourceAmount: number,
+    type: string,
+    exchangeRate: number,
+  ): number {
+    const usdTotal =
+      type === 'Compra'
+        ? sourceAmount / exchangeRate
+        : targetAmount / exchangeRate;
+    return parseFloat(usdTotal.toFixed(2));
   }
 }

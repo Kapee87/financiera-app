@@ -8,7 +8,6 @@
  * @property {string} lastname - Apellido del cliente
  * @property {number} money - Dinero que el cliente tiene en la cuenta
  * @property {number} totalDebts - Total de deudas del cliente
- * @property {number} totalPayments - Total de pagos del cliente
  * @property {string} phone - Teléfono del cliente
  * @property {string} mail - Correo electrónico del cliente
  */
@@ -55,12 +54,6 @@ export class UpdateClientDto {
    */
   @Prop({ type: Number, default: 0 })
   totalDebts: number;
-
-  /**
-   * Total de pagos del cliente
-   */
-  @Prop({ type: Number, default: 0 })
-  totalPayments: number;
 
   /**
    * Teléfono del cliente
