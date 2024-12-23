@@ -1,30 +1,42 @@
 /* eslint-disable */
+/**
+ * Esquema de monedas
+ *
+ * Contiene la información de las monedas que se manejan en la empresa
+ *
+ * @property {ObjectId} _id - Identificador único de la moneda
+ * @property {String} name - Nombre de la moneda
+ * @property {String} code - Código de la moneda
+ * @property {Number} exchangeRate - Tasa de cambio de la moneda con respecto al dólar
+ */
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
-import { SchemaTypes } from 'mongoose';
+import { SchemaTypes, Types } from 'mongoose';
 
 @Schema({
   timestamps: true,
 })
 export class Currency {
   @Prop({ type: SchemaTypes.ObjectId, auto: true })
-  _id: string;
+  _id: Types.ObjectId;
 
   @Prop({ required: true })
-  name: string; // Nombre de la moneda (ej. Dólar, Euro)
+  name: string;
 
   @Prop({ required: true })
-  code: string; // Código de la moneda (ej. USD, EUR)
+  code: string;
 
   @Prop({
     required: true,
   })
-  exchangeRate: number; // Tasa actual en relación con otras monedas
+  exchangeRate: number;
 
   @Prop({
-    required: true,
-    default: 0,
+    type: Boolean,
+    default: false,
+    unique: true,
+    sparse: true,
   })
-  stock: number; // Cantidad disponible de la moneda en la sucursal
+  isPrimaryCurrency: boolean;
 }
 
 export const CurrencySchema = SchemaFactory.createForClass(Currency);

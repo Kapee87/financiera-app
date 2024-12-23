@@ -1,4 +1,11 @@
 /* eslint-disable */
+/**
+ * Controlador de autenticación, para el registro y login de usuarios,
+ * así como para la activación de la cuenta y el restablecimiento de la
+ * contraseña.
+ *
+ * @since 1.0.0
+ */
 import {
   Controller,
   Post,
@@ -18,7 +25,6 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { ConfigService } from '@nestjs/config';
 import { Roles } from 'src/utils/enums/roles.enum';
-import { IsActiveGuard } from 'src/guards/is-active-guard';
 
 @Controller('auth')
 export class AuthController {
@@ -29,6 +35,14 @@ export class AuthController {
     private configService: ConfigService,
   ) {}
 
+  /**
+   * Autenticación de usuarios, verifica si el email y contraseña
+   * son válidos y devuelve un token JWT para la autenticación.
+   *
+   * @param {string} email Email del usuario
+   * @param {string} password Contraseña del usuario
+   * @returns {Promise<{ accessToken: string; }>} Token JWT
+   */
   @Post('login')
   async login(@Body() loginUserDto: { email: string; password: string }) {
     try {
@@ -41,6 +55,15 @@ export class AuthController {
     }
   }
 
+  /**
+   * Registro de usuarios, verifica si el email ya existe, si no,
+   * crea un nuevo usuario con el rol de administrador y devuelve un
+   * token JWT para la activación de la cuenta.
+   *
+   * @param {userDto} registerUserDto Información del usuario a registrar
+   * @param {string} superKey Clave SUPER_KEY para crear super administradores
+   * @returns {Promise<{ message: string; status: number; }>} Mensaje y código de estado
+   */
   @Post('register')
   async register(
     @Body() registerUserDto: userDto,
@@ -48,13 +71,12 @@ export class AuthController {
   ) {
     if (!Object.values(Roles).includes(registerUserDto.role)) {
       console.log(registerUserDto);
-
       throw new ConflictException('Rol no válido');
     }
 
     if (registerUserDto.role === Roles.User) {
       throw new UnauthorizedException(
-        'Sin permisos para registrar usuarios, sólo Administradores',
+        'Sin permisos para registrar usuarios, solo Administradores',
       );
     }
     if (
@@ -71,7 +93,10 @@ export class AuthController {
       superKey === this.configService.get<string>('SUPER_KEY')
     ) {
       try {
-        await this.authService.createSuperAdmin(registerUserDto);
+        await this.authService.createSuperAdmin({
+          ...registerUserDto,
+          isActive: false,
+        });
         return {
           message: 'Creado exitosamente',
           status: 201,
@@ -84,19 +109,22 @@ export class AuthController {
     }
 
     try {
-      console.log('llego al try registerAdmin');
-
       registerUserDto.role = Roles.Admin;
       return await this.authService.register(registerUserDto);
     } catch (error) {
-      throw new ConflictException('El usuario ya existe' + error);
+      throw new ConflictException(error.message);
     }
   }
 
+  /**
+   * Activa la cuenta de un usuario, verifica si el token es válido y
+   * activa la cuenta del usuario.
+   *
+   * @param {string} token Token JWT para la activación de la cuenta
+   * @returns {Promise<{ message: string; }>} Mensaje de confirmación
+   */
   @Get('activate')
   async activateAccount(@Query('token') token: string) {
-    console.log(token);
-
     try {
       const payload = this.jwtService.verify(token);
       const user = await this.usersService.findOneById(payload.sub);
@@ -107,12 +135,21 @@ export class AuthController {
       // Activa el usuario
       user.isActive = true;
       const activeUser = await this.usersService.updateUser(user._id, user);
-      console.log(activeUser);
+
       return { message: 'Cuenta activada exitosamente.' };
     } catch (error) {
       throw new UnauthorizedException('Token expirado o inválido');
     }
   }
+
+  /**
+   * Envía un correo de restablecimiento de contraseña a un usuario,
+   * verifica si el email existe y envía un correo con un enlace para
+   * restablecer la contraseña.
+   *
+   * @param {string} email Email del usuario
+   * @returns {Promise<{ message: string; }>} Mensaje de confirmación
+   */
   @Post('forgot-password')
   async forgotPassword(@Body('email') email: string) {
     try {
@@ -137,6 +174,14 @@ export class AuthController {
     }
   }
 
+  /**
+   * Restablece la contraseña de un usuario, verifica si el token es
+   * válido y restablece la contraseña del usuario.
+   *
+   * @param {string} token Token JWT para el restablecimiento de la contraseña
+   * @param {string} password Nueva contraseña del usuario
+   * @returns {Promise<{ message: string; }>} Mensaje de confirmación
+   */
   @Post('reset-password')
   async resetPassword(
     @Query('token') token: string,
@@ -157,6 +202,12 @@ export class AuthController {
     }
   }
 
+  /**
+   * Verifica si un email ya existe en la base de datos.
+   *
+   * @param {string} email Email a verificar
+   * @returns {Promise<boolean>} Verdadero si el email existe, falso si no
+   */
   @Post('check-mail')
   async checkIfMailExists(@Body('email') email: string) {
     const user = await this.usersService.findByEmail(email);

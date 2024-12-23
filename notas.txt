@@ -1,0 +1,8 @@
+filtro operaciones del día. por módulo.
+
+por usuario, por tipo. mas urgentes.
+
+Balance módulo
+
+
+delete debe afectar stocks- revisar usar update stocks en lugar de updateCurrencyStocks(lógica de selección de tipo de operación hecha)

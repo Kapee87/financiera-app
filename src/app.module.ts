@@ -1,4 +1,10 @@
 /* eslint-disable */
+/**
+ * Este modulo es el modulo principal de la aplicacion, aqui se configura la conexion
+ * a la base de datos con Mongoose, se importan los modulos de autenticacion, usuarios,
+ * transacciones, oficinas, monedas, cajas registradoras, sub oficinas, gastos y clientes.
+ * El modulo exporta el modulo de Mongoose para que pueda ser utilizado en otros modulos.
+ */
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -8,6 +14,11 @@ import { TransactionModule } from './modules/transaction/transaction.module';
 import { OfficeModule } from './modules/office/office.module';
 import { CurrencyModule } from './modules/currency/currency.module';
 import { CashRegister } from './schemas/cash_registers.schema';
+import { SubOfficeModule } from './modules/sub_office/sub_office.module';
+
+import { ClientsModule } from './modules/clients/clients.module';
+import { MovementModule } from './modules/movements/movements.module';
+import { BalanceModule } from './modules/balance/balance.module';
 
 @Module({
   imports: [
@@ -28,6 +39,10 @@ import { CashRegister } from './schemas/cash_registers.schema';
     OfficeModule,
     CurrencyModule,
     CashRegister,
+    SubOfficeModule,
+    MovementModule,
+    ClientsModule,
+    BalanceModule,
   ],
   exports: [MongooseModule],
 })

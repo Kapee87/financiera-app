@@ -1,10 +1,25 @@
 /* eslint-disable */
-import { Controller, Get, Post, Put, Param, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Param,
+  Body,
+  Delete,
+  BadRequestException,
+} from '@nestjs/common';
 
 import { CreateCashRegisterDto } from '../../dtos/create-cash-register.dto';
 import { UpdateCashRegisterDto } from '../../dtos/update-cash-register.dto';
-import { CashRegisterService } from './cash_register.service';
-import { CashRegister } from 'src/schemas/cash_registers.schema';
+import { CashRegisterService, CurrencyTotals } from './cash_register.service';
+import {
+  CashRegister,
+  CashRegisterDocument,
+} from 'src/schemas/cash_registers.schema';
+import { Types } from 'mongoose';
+import { CloseCashRegisterDto } from 'src/dtos/close-cash-register.dto';
+import { cashRegisterFilterDto } from 'src/dtos/cash-register-filter.dto';
 
 @Controller('cash-register')
 export class CashRegisterController {
@@ -19,10 +34,10 @@ export class CashRegisterController {
 
   @Put('close/:id')
   closeDay(
-    @Param('id') id: string,
-    @Body() updateCashRegisterDto: UpdateCashRegisterDto,
+    @Param('id') id: string | Types.ObjectId,
+    @Body() closeCashRegisterDto: CloseCashRegisterDto,
   ): Promise<CashRegister> {
-    return this.cashRegisterService.closeDay(id, updateCashRegisterDto);
+    return this.cashRegisterService.closeDay(id, closeCashRegisterDto);
   }
 
   @Get(':date')
@@ -33,5 +48,84 @@ export class CashRegisterController {
   @Get()
   listAllCashRegisters(): Promise<CashRegister[]> {
     return this.cashRegisterService.listAllCashRegisters();
+  }
+
+  @Get('current/:subOfficeId')
+  async getCurrentCashRegisterForSubOffice(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+  ): Promise<CashRegisterDocument | null> {
+    try {
+      const cashRegister =
+        await this.cashRegisterService.getCurrentCashRegisterForSubOffice(
+          subOfficeId,
+        );
+      if (!cashRegister) {
+        throw new BadRequestException('No hay caja abierta para el dia de hoy');
+      }
+      console.log(cashRegister);
+
+      return cashRegister;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  @Get(':subOfficeId/current-stock-total')
+  calculateCurrentStockTotal(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Body('usd_rate') usd_rate: number,
+  ): Promise<number> {
+    console.log(usd_rate);
+
+    return this.cashRegisterService.calculateCurrentStockTotal(
+      subOfficeId,
+      usd_rate,
+    );
+  }
+
+  @Get('/by-id/:id')
+  findById(@Param('id') id: string | Types.ObjectId): Promise<CashRegister> {
+    return this.cashRegisterService.findById(id);
+  }
+
+  @Post(':subOfficeId/transaction-and-movements-for-day/')
+  getTransactionsAndMovementsForDay(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Body() cashRegisterFilterDto: cashRegisterFilterDto,
+  ) {
+    return this.cashRegisterService.getTransactionsAndMovementsForDay(
+      subOfficeId,
+      cashRegisterFilterDto,
+    );
+  }
+  @Post(':subOfficeId/total-transactions-for-day/')
+  getTotalTransactionsForDay(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Body('usd_rate') usdRate: number,
+  ): Promise<CurrencyTotals> {
+    const today = new Date();
+    return this.cashRegisterService.calculateTransactionTotals(
+      subOfficeId,
+      today,
+      usdRate,
+    );
+  }
+
+  @Post(':subOfficeId/total-movements-for-day/')
+  getTotalMovementsForDay(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Body('usd_rate') usdRate: number,
+  ): Promise<{ incomeUSD: number; expensesUSD: number }> {
+    const today = new Date();
+    return this.cashRegisterService.calculateMovementTotals(
+      subOfficeId,
+      today,
+      usdRate,
+    );
+  }
+
+  @Delete()
+  deleteAllForDevelopment(): Promise<any> {
+    return this.cashRegisterService.deleteAllForDevelopment();
   }
 }

@@ -1,18 +1,59 @@
 /* eslint-disable */
+/**
+ * Servicio para generar correos electrónicos con plantillas HTML.
+ *
+ * Permite personalizar el contenido de los correos electrónicos
+ * enviados a los usuarios, como el enlace de confirmación de
+ * cuenta, el t&iacute;tulo y el mensaje.
+ *
+   Luis Alberto Méndez López
+ * @version 1.0
+ * @since   2022-05-05
+ */
 import { Injectable } from '@nestjs/common';
 
+/**
+ * Interfaz para los valores de las variables que se pueden personalizar
+ * en la plantilla HTML.
+ */
 export interface TemplateVars {
+  /**
+   * Enlace que se mostrar&aacute; en el correo electrónico.
+   */
   link: string;
+  /**
+   * A&ntilde;o actual para mostrar en el pie de p&aacute;gina.
+   */
   currentYear: number;
+  /**
+   * Mensaje personalizado que se mostrar&aacute; en el correo electrónico.
+   */
   message: string;
+  /**
+   * T&iacute;tulo del correo electrónico.
+   */
   title: string;
+  /**
+   * Texto del botón que se mostrar&aacute; en el correo electrónico.
+   */
   btn_text: string;
 }
 
+/**
+ * Servicio que se encarga de generar correos electrónicos con
+ * plantillas HTML.
+ */
 @Injectable()
 export class TemplatesService {
+  /**
+   * Plantilla HTML que se utilizar&aacute; para generar el correo
+   * electrónico.
+   */
   private htmlTemplate: string;
 
+  /**
+   * Constructor que inicializa la plantilla HTML.
+   */
   constructor() {
     this.htmlTemplate = `
             <!DOCTYPE html>
@@ -79,6 +120,13 @@ export class TemplatesService {
         `;
   }
 
+  /**
+   * Método que permite obtener la plantilla HTML personalizada
+   * según los valores de las variables proporcionadas.
+   * @param vars Valores de las variables que se pueden personalizar
+   *             en la plantilla HTML.
+   * @returns     La plantilla HTML personalizada.
+   */
   getTemplate(vars: TemplateVars): string {
     return this.htmlTemplate
       .replace('{{link}}', vars.link)
