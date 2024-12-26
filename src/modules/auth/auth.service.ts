@@ -119,13 +119,7 @@ export class AuthService {
     if (user) {
       throw new UnauthorizedException('El email ya existe');
     }
-    const mailExists = await this.checkIfMailExists(registerUserDto.email);
 
-    if (!mailExists) {
-      throw new UnauthorizedException({
-        message: 'El email no existe, por favor indica uno correctamente',
-      });
-    }
     try {
       const newUser = await this.usersService.createUser({
         ...registerUserDto,

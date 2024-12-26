@@ -60,7 +60,7 @@ export class AuthController {
    * crea un nuevo usuario con el rol de administrador y devuelve un
    * token JWT para la activación de la cuenta.
    *
-   * @param {userDto} registerUserDto Información del usuario a registrar
+   * @body {userDto} registerUserDto Información del usuario a registrar
    * @param {string} superKey Clave SUPER_KEY para crear super administradores
    * @returns {Promise<{ message: string; status: number; }>} Mensaje y código de estado
    */
