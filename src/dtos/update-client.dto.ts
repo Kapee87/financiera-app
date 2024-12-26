@@ -65,7 +65,7 @@ export class UpdateClientDto {
    * Correo electrónico del cliente
    */
   @Prop({ type: String, default: '' })
-  mail: string;
+  email: string;
 
   /**
    * Transacciones realizadas por el cliente

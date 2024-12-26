@@ -10,7 +10,7 @@
  * @property {number} money - Dinero que el cliente tiene en la cuenta
  * @property {number} totalDebts - Total de deudas del cliente
  * @property {string} phone - Teléfono del cliente
- * @property {string} mail - Correo electrónico del cliente
+ * @property {string} email - Correo electrónico del cliente
  * @property {ObjectId[]} transactions - Transacciones realizadas por el cliente
  * @property {ObjectId[]} movements - Movimientos de caja realizados por el cliente
  * @property {string[]} observations - Observaciones del cliente
@@ -43,7 +43,7 @@ export class Client {
   phone?: string;
 
   @Prop({ type: String, default: '' })
-  mail?: string;
+  email?: string;
 
   @Prop({ type: [Types.ObjectId], ref: 'Transaction', default: [] })
   transactions?: string[];

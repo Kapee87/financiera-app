@@ -38,7 +38,6 @@ export class CreateMovementDto {
   category: 'ingreso' | 'egreso';
 
   @IsNotEmpty()
-  @IsLowercase()
   type: string;
 
   @IsMongoId()

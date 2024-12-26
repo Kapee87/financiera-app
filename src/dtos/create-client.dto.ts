@@ -63,7 +63,7 @@ export class CreateClientDto {
    */
   @IsString()
   @IsOptional()
-  mail?: string;
+  email?: string;
 
   /**
    * Transacciones realizadas por el cliente (opcional)
