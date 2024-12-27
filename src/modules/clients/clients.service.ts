@@ -32,7 +32,7 @@ export class ClientsService {
         totalDebts: createClientsDto.totalDebts,
 
         phone: createClientsDto.phone,
-        mail: createClientsDto.mail,
+        email: createClientsDto.email,
         transactions: createClientsDto.transactions,
         movements: createClientsDto.movements,
         observations: createClientsDto.observations,

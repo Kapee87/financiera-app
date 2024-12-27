@@ -26,6 +26,7 @@
  */
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { PaymentMethod } from 'src/utils/enums/paymentMethods.enum';
 
 // Definimos el tipo TransactionDocument, que es Transaction + Document de Mongoose
 export type TransactionDocument = Transaction & Document;
@@ -119,6 +120,38 @@ export class Transaction {
 
   @Prop({ type: Date, default: Date.now })
   createdAt: Date;
+
+  @Prop({
+    type: [
+      {
+        method: { type: String, enum: PaymentMethod },
+        amount: { type: Number },
+      },
+    ],
+    default: [],
+  })
+  paymentMethods: { method: PaymentMethod; amount: number }[];
+
+  @Prop({ enum: PaymentMethod, default: PaymentMethod.efectivo })
+  paymentMethod: string;
+
+  @Prop({ type: String })
+  bankOrigin?: string;
+
+  @Prop({ type: String })
+  accountOrigin: string;
+
+  @Prop({ type: String })
+  bankDestination?: string;
+
+  @Prop({ type: String })
+  accountDestination: string;
+
+  @Prop({ type: String })
+  sender?: string;
+
+  @Prop({ type: String })
+  proofNumber?: string;
 }
 
 // Usamos SchemaFactory para crear el esquema

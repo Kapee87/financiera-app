@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Balance } from 'src/schemas/balance.schema';
@@ -27,6 +27,15 @@ export class BalanceService {
     usdRate: number,
   ): Promise<Balance> {
     const today = truncateDate(new Date());
+
+    const cashRegister =
+      await this.cash_registerService.getCurrentCashRegisterForSubOffice(
+        subOfficeId,
+      );
+
+    if (!cashRegister) {
+      throw new ConflictException('No hay caja abierta');
+    }
 
     const movements = await this.cash_registerService.calculateMovementTotals(
       subOfficeId,
@@ -60,14 +69,6 @@ export class BalanceService {
     const totalProfit = Number(
       (movementsProfit + transactionsProfit).toFixed(2),
     );
-
-    console.log('movimientos', movements);
-    console.log('transactions', transactions);
-    console.log('currentStockUSD', currentStockUSD);
-    console.log('existingBalance', existingBalance);
-    console.log('movementsProfit', movementsProfit);
-    console.log('transactionsProfit', transactionsProfit);
-    console.log('totalProfit', totalProfit);
 
     if (existingBalance) {
       existingBalance.totalExpensesUSD = movements.expensesUSD; //egresos movimientos

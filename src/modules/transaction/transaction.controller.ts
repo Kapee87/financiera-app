@@ -19,6 +19,7 @@ import {
   InternalServerErrorException,
   BadRequestException,
   UseGuards,
+  Patch,
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 
@@ -159,4 +160,23 @@ export class TransactionController {
       throw new BadRequestException(error.message);
     }
   }
+
+  @Post(':subOfficeId/filter')
+  getTransactionsFiltered(
+    @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
+    @Body() filter: any,
+  ) {
+    return this.transactionService.getTransactionsFiltered(subOfficeId, filter);
+  }
+
+  /* -----------------------------Migracion dev para campos nuevos(relativos a metodo de pago)
+  @Patch('migrate')
+  async migrateTransactions() {
+    try {
+      await this.transactionService.migrateTransactions();
+      return { message: 'Migración exitosa' };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  } */
 }

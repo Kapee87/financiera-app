@@ -23,10 +23,12 @@ import {
   IsOptional,
   IsMongoId,
   IsString,
-  IsDate,
+  IsArray,
   ValidateIf,
   IsDateString,
 } from 'class-validator';
+import { PaymentMethod } from 'src/utils/enums/paymentMethods.enum';
+
 import { Types } from 'mongoose';
 
 export class CreateTransactionDto {
@@ -73,4 +75,28 @@ export class CreateTransactionDto {
   @IsString()
   @IsNotEmpty()
   bankName?: string;
+
+  @IsOptional()
+  paymentMethods: { method: PaymentMethod; amount: number }[];
+
+  @IsOptional()
+  paymentMethod?: PaymentMethod;
+
+  @IsOptional()
+  bankOrigin?: string;
+
+  @IsOptional()
+  accountOrigin: string;
+
+  @IsOptional()
+  bankDestination?: string;
+
+  @IsOptional()
+  accountDestination: string;
+
+  @IsOptional()
+  sender?: string;
+
+  @IsOptional()
+  proofNumber?: string;
 }

@@ -6,7 +6,6 @@
  *
   
  * @version 1.0.0
- * @since 2020-07-20
  */
 import {
   BadRequestException,
@@ -77,6 +76,7 @@ export class TransactionService {
     createTransactionDto: CreateTransactionDto,
   ): Promise<Transaction> {
     const session = await this.connection.startSession();
+
     try {
       await session.withTransaction(async () => {
         const {
@@ -296,7 +296,7 @@ export class TransactionService {
    * @param type Tipo de transacción (buy, sell o check)
    */
   private async updateStocks(
-    transaction: CreateTransactionDto,
+    transaction: Partial<CreateTransactionDto>,
     sourceAmount: number,
     targetAmount: number,
     type: string,
@@ -473,7 +473,7 @@ export class TransactionService {
       if (!transaction) {
         throw new NotFoundException(`Transaction with ID ${id} not found`);
       }
-      const stockUpdateDto: CreateTransactionDto = {
+      const stockUpdateDto: Partial<CreateTransactionDto> = {
         user: transaction.user,
         subOffice: transaction.subOffice,
         sourceCurrency: transaction.targetCurrency,
@@ -777,4 +777,57 @@ export class TransactionService {
         : targetAmount / exchangeRate;
     return parseFloat(usdTotal.toFixed(2));
   }
+
+  getTransactionsFiltered(subOfficeId: string | Types.ObjectId, filter: any) {
+    try {
+      if (!filter.pagoDoble) {
+        const transactions = this.transactionModel
+          .find({ subOffice: subOfficeId, ...filter })
+          .lean()
+          .exec();
+
+        return transactions;
+      } else if (filter.pagoDoble) {
+        const transactions = this.transactionModel
+          .find({
+            subOffice: subOfficeId,
+            $and: [
+              { 'paymentMethods.method': 'Efectivo' },
+              { 'paymentMethods.method': 'Transferencia' },
+            ],
+          })
+          .lean()
+          .exec();
+        console.log(filter);
+
+        return transactions;
+      }
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Error al obtener las transacciones',
+      );
+    }
+  }
+  /*  --------------------------Migracion dev para campos nuevos(relativos a metodo de pago)
+  async migrateTransactions() {
+    const defaultValues = {
+      accountOrigin: '',
+      accountDestination: '',
+      bankOrigin: '',
+      bankDestination: '',
+      sender: '',
+      proofNumber: '',
+      paymentMethod: 'Efectivo',
+    };
+
+    const result = await this.transactionModel.updateMany(
+      { paymentMethod: { $exists: false } },
+      { $set: defaultValues },
+    );
+
+    return {
+      message: `Actualizados ${result.modifiedCount} documentos`,
+      result,
+    };
+  } */
 }

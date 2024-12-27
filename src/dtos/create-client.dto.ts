@@ -9,7 +9,7 @@
  * @property {number} [money] - Dinero que el cliente tiene en la cuenta (opcional)
  * @property {number} [totalDebts] - Total de deudas del cliente (opcional)
  * @property {string} [phone] - Tel fono del cliente (opcional)
- * @property {string} [mail] - Correo electr nico del cliente (opcional)
+ * @property {string} [email] - Correo electr nico del cliente (opcional)
  * @property {string[]} [transactions] - Transacciones realizadas por el cliente (opcional)
  * @property {string[]} [movements] - Movimientos de caja realizados por el cliente (opcional)
  * @property {string[]} [observations] - Observaciones del cliente (opcional)
