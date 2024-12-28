@@ -26,7 +26,7 @@ import { BalanceModule } from './modules/balance/balance.module';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>('MONGO_DB_URI'),
-        dbName: 'FinancieraDb',
+        dbName: 'FinancieraDbProd',
       }),
       inject: [ConfigService],
     }),

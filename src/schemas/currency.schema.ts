@@ -33,8 +33,6 @@ export class Currency {
   @Prop({
     type: Boolean,
     default: false,
-    unique: true,
-    sparse: true,
   })
   isPrimaryCurrency: boolean;
 }
