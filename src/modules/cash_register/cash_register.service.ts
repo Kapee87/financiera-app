@@ -466,6 +466,11 @@ export class CashRegisterService {
     subOfficeId: string | Types.ObjectId,
     cashRegisterFilterDto: cashRegisterFilterDto,
   ): Promise<any> {
+    console.log(
+      truncateDate(new Date()).toISOString(),
+      this.getNextDay(new Date()).toISOString(),
+    );
+
     const transactions = await this.transactionModel
       .find({
         subOffice: subOfficeId,
@@ -517,6 +522,11 @@ export class CashRegisterService {
       ...transactions.map((t) => ({ ...t, sortDate: t.createdAt })),
       ...movements.map((m) => ({ ...m, sortDate: m.date })),
     ];
+
+    console.log(transactions);
+    console.log(movements);
+    console.log(combinedItems);
+
     return combinedItems
       .sort(
         (a, b) =>

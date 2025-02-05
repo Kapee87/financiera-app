@@ -93,6 +93,8 @@ export class CashRegisterController {
     @Param('subOfficeId') subOfficeId: string | Types.ObjectId,
     @Body() cashRegisterFilterDto: cashRegisterFilterDto,
   ) {
+    console.log('cashRegisterFilterDto', cashRegisterFilterDto);
+
     return this.cashRegisterService.getTransactionsAndMovementsForDay(
       subOfficeId,
       cashRegisterFilterDto,
