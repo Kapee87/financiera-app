@@ -27,6 +27,9 @@ export class SubOffice {
   @Prop({ required: true, unique: true })
   code: string;
 
+  @Prop({ required: true, unique: true })
+  numeroIdentificacion: number;
+
   @Prop({ required: true })
   address: string;
 

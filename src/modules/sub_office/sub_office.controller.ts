@@ -71,6 +71,21 @@ export class SubOfficeController {
   }
 
   /**
+   * Obtiene una suboficina por su número de identificación
+   *
+   * @param {string} numeroIdentificacion - Número de identificación de la suboficina a obtener
+   * @returns {Promise<SubOffice>} - Promesa que se resuelve con la suboficina obtenida
+   */
+  @Get('numero-identificacion/:numeroIdentificacion')
+  findOneByNumberIdentification(
+    @Param('numeroIdentificacion') numeroIdentificacion: string,
+  ): Promise<SubOffice> {
+    return this.subOfficeService.findOneByNumberIdentification(
+      numeroIdentificacion,
+    );
+  }
+
+  /**
    * Actualiza una suboficina
    *
    * @param {string} id - ID de la suboficina a actualizar
