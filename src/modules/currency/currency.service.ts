@@ -65,6 +65,16 @@ export class CurrencyService {
    * @returns {Promise<Currency[]>} Lista de monedas
    */
   async findAll(): Promise<Currency[]> {
+    //PARA USO EN DESARROLLO UNICAMENTE O DE UNA SOLA VEZ(Genera numeroIdentificacion para todas las suboficinas)
+    /* const subOffices = await this.currencyModel.find().exec();
+    const subOfficesWithoutId = await this.currencyModel.find().exec();
+    let cont = 0;
+    for (const subOffice of subOfficesWithoutId) {
+      cont++;
+      subOffice.numeroIdentificacion = cont;
+      this.currencyModel.findByIdAndUpdate(subOffice._id, subOffice);
+    } */
+
     try {
       return await this.currencyModel.find().exec();
     } catch (error) {

@@ -80,11 +80,17 @@ export class CashRegisterService {
       const existingRegister = await this.getCurrentCashRegisterForSubOffice(
         createCashRegisterDto.sub_office,
       );
+      const sub_office = await this.subOfficeService.findOne(
+        createCashRegisterDto.sub_office,
+      );
 
       if (existingRegister) {
         throw new ConflictException(
           'Ya existe una caja abierta para esta sub-oficina hoy',
         );
+      }
+      if (!sub_office) {
+        throw new NotFoundException('Sub-oficina no encontrada');
       }
 
       let registerDate: Date;

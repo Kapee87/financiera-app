@@ -90,6 +90,20 @@ export class SubOfficeService {
    * @returns {Promise<SubOffice[]>} Las suboficinas
    */
   async findAll(): Promise<SubOffice[]> {
+    //PARA USO EN DESARROLLO UNICAMENTE O DE UNA SOLA VEZ(Genera numeroIdentificacion para todas las suboficinas)
+    /* 
+    const subOffices = await this.sub_officeModel.find().exec();
+    const subOfficesWithoutId = await this.sub_officeModel.find().exec();
+    let cont = 0;
+    for (const subOffice of subOfficesWithoutId) {
+      cont++;
+      subOffice.numeroIdentificacion = cont;
+      await this.retry(() =>
+        this.sub_officeModel.findByIdAndUpdate(subOffice._id, subOffice),
+      );
+    } 
+      */
+
     return this.sub_officeModel
       .find()
       .populate({
@@ -126,6 +140,31 @@ export class SubOfficeService {
       .exec();
     if (!subOffice) {
       throw new NotFoundException(`No se encontró la sucursal con ID ${id}`);
+    }
+    return subOffice;
+  }
+
+  /**
+   * Obtiene una suboficina por su número de identificación
+   *
+   * @param {string} numeroIdentificacion - Número de identificación de la suboficina a obtener
+   * @returns {Promise<SubOffice>} - Promesa que se resuelve con la suboficina obtenida
+   */
+  async findOneByNumberIdentification(
+    numeroIdentificacion: string,
+  ): Promise<SubOffice> {
+    const subOffice = await this.sub_officeModel
+      .findOne({ numeroIdentificacion })
+      .populate({
+        path: 'currencies.currency',
+        model: 'Currency',
+        select: 'name _id code exchangeRate updatedAt',
+      })
+      .exec();
+    if (!subOffice) {
+      throw new NotFoundException(
+        `No se encontró la sucursal con número de identificación ${numeroIdentificacion}`,
+      );
     }
     return subOffice;
   }

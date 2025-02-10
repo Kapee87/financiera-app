@@ -8,20 +8,47 @@ import { truncateDate } from 'src/utils/utilFunctions/utils';
 
 @Injectable()
 export class BalanceService {
+  /**
+   * Servicio para la gestion de balances
+   *
+   * Contiene metodos para obtener, calcular y eliminar balances
+   *
+   * @constructor
+   * @param {Model<Balance>} balanceModel Modelo de balances
+   * @param {CashRegisterService} cash_registerService Servicio para la gestion de cajas
+   */
   constructor(
     @InjectModel('Balance')
     private balanceModel: Model<Balance>,
     private cash_registerService: CashRegisterService,
   ) {}
 
+  /**
+   * Obtiene todos los balances
+   *
+   * @returns {Promise<Balance[]>} Un array con todos los balances
+   */
   async findAll(): Promise<Balance[]> {
     return this.balanceModel.find().exec();
   }
 
+  /**
+   * Obtiene un balance por su id
+   *
+   * @param {string} id El id del balance
+   * @returns {Promise<Balance>} El balance encontrado
+   */
   async findOne(id: string): Promise<Balance> {
     return this.balanceModel.findById(id).exec();
   }
 
+  /**
+   * Calcula un balance para una suboficina y un tipo de cambio
+   *
+   * @param {string} subOfficeId El id de la suboficina
+   * @param {number} usdRate El tipo de cambio (1 USD = x ARS)
+   * @returns {Promise<Balance>} El balance calculado
+   */
   async calculateBalance(
     subOfficeId: string,
     usdRate: number,
@@ -96,7 +123,12 @@ export class BalanceService {
     return existingBalance;
   }
 
-  async deleteAll(): Promise<string> {
+  /**
+   * Elimina todos los balances
+   *
+   * @returns {Promise<string>} Un mensaje de confirmacion de eliminacion
+   */
+  async deleteAll(): Promise<string> {0
     try {
       await this.balanceModel.deleteMany({}).exec();
       return 'All balances deleted';

@@ -20,6 +20,7 @@ import {
   BadRequestException,
   UseGuards,
   Patch,
+  Request,
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 
@@ -27,6 +28,7 @@ import { Transaction } from 'src/schemas/transaction.schema';
 import { CreateTransactionDto } from 'src/dtos/create-transaction.dto';
 import { Types } from 'mongoose';
 import { AdminGuard } from 'src/guards/admin-guard';
+import { request } from 'node:https';
 
 /**
  * Controlador para la gestión de transacciones
@@ -45,7 +47,7 @@ export class TransactionController {
    * @returns La transacción creada
    */
   @Post()
-  create(@Body() transactionData: CreateTransactionDto) {
+  create(@Body() transactionData: CreateTransactionDto, @Request() request) {
     return this.transactionService.create(transactionData);
   }
 

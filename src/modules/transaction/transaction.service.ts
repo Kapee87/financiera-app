@@ -25,6 +25,7 @@ import { CashRegisterService } from '../cash_register/cash_register.service';
 import { CreateTransactionDto } from 'src/dtos/create-transaction.dto';
 import { UsersService } from '../users/users.service';
 import { Connection } from 'mongoose';
+import { Roles } from 'src/utils/enums/roles.enum';
 
 @Injectable()
 export class TransactionService {
@@ -56,18 +57,21 @@ export class TransactionService {
    * 'Compra':
    * - sourceCurrency: la moneda que el cliente entrega
    * - targetCurrency: la moneda que el cliente recibe
-   * - amount: la cantidad de la moneda que el cliente quiere recibir
+   * - amount: la cantidad de la moneda que el cliente entrega
+   * - exchangeRate: la tasa de cambio de la moneda origen a la moneda destino
    *
    * 'Venta':
    * - sourceCurrency: la moneda que el cliente entrega
    * - targetCurrency: la moneda que el cliente recibe
    * - amount: la cantidad de la moneda que el cliente entrega
+   * - exchangeRate: la tasa de cambio de la moneda origen a la moneda destino
    *
    * 'Cambio de cheque':
    * - sourceCurrency: siempre será CHECK
    * - targetCurrency: siempre será ARS
    * - amount: el valor nominal del cheque
-   * - exchangeRate: porcentaje que se retiene como comisión (ej: 0.95 para 5% de comisión)
+   * - exchangeRate: la tasa de cambio de la moneda origen a la moneda destino
+   * - commission: la comisión que se cobra por el servicio de cambio de cheque
    *
    * @param createTransactionDto Datos de la transacción a crear
    * @returns La transacción creada
@@ -93,7 +97,41 @@ export class TransactionService {
             : createTransactionDto.checkDueDate,
           bankName,
         } = createTransactionDto;
+        /* const user = this.userService.findOneById(user); */
         let profit: number = null;
+        const userData = await this.userService.findOneById(user.toString());
+
+        const isTransferOperation = createTransactionDto.paymentMethods
+          ? createTransactionDto.paymentMethods.some(
+              (paymentMethod) => paymentMethod.method === 'Transferencia',
+            )
+          : createTransactionDto.paymentMethod === 'Transferencia';
+        console.log('isTransferOperation', isTransferOperation);
+        console.log('userData role', userData.role !== Roles.Admin);
+        console.log('userData', userData);
+        console.log('createTransactionDto', createTransactionDto);
+
+        if (isTransferOperation && userData.role !== Roles.Admin) {
+          if (
+            !createTransactionDto.bankOrigin ||
+            !createTransactionDto.accountOrigin ||
+            !createTransactionDto.bankDestination ||
+            !createTransactionDto.accountDestination ||
+            !createTransactionDto.sender ||
+            !createTransactionDto.proofNumber
+          ) {
+            throw new BadRequestException(
+              `Las operaciones de transferencia deben tener los campos ${[
+                'bankOrigin',
+                'accountOrigin',
+                'bankDestination',
+                'accountDestination',
+                'sender',
+                'proofNumber',
+              ].join(', ')}`,
+            );
+          }
+        }
 
         // Validaciones específicas por tipo de operación
         if (type === 'Cambio de cheque') {
@@ -130,17 +168,12 @@ export class TransactionService {
           );
         }
 
-        const [
-          userData,
-          subOfficeData,
-          sourceCurrencyData,
-          targetCurrencyData,
-        ] = await Promise.all([
-          this.userService.findOneById(user.toString()),
-          this.subOfficeService.findOne(subOffice.toString()),
-          this.currencyService.findOne(sourceCurrency.toString()),
-          this.currencyService.findOne(targetCurrency.toString()),
-        ]);
+        const [subOfficeData, sourceCurrencyData, targetCurrencyData] =
+          await Promise.all([
+            this.subOfficeService.findOne(subOffice.toString()),
+            this.currencyService.findOne(sourceCurrency.toString()),
+            this.currencyService.findOne(targetCurrency.toString()),
+          ]);
 
         let sourceAmount: number;
         let targetAmount: number;
