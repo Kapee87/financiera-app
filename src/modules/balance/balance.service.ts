@@ -55,6 +55,7 @@ export class BalanceService {
   ): Promise<Balance> {
     const today = truncateDate(new Date());
 
+    /* Verifica que haya caja abierta, sino da error */
     const cashRegister =
       await this.cash_registerService.getCurrentCashRegisterForSubOffice(
         subOfficeId,
@@ -63,31 +64,34 @@ export class BalanceService {
     if (!cashRegister) {
       throw new ConflictException('No hay caja abierta');
     }
-
+    /* calcula el total de movimientos (devuelve ingresos y egresos en USD) */
     const movements = await this.cash_registerService.calculateMovementTotals(
       subOfficeId,
       today,
       usdRate,
     );
 
+    /* calcula el total de transacciones (devuelve ingresos , egresos y cheques en USD) */
     const transactions =
       await this.cash_registerService.calculateTransactionTotals(
         subOfficeId,
         today,
         usdRate,
       );
-
+    /* calcula el total de stock */
     const currentStockUSD =
       await this.cash_registerService.calculateCurrentStockTotal(
         subOfficeId,
         usdRate,
       );
 
+    /* Verifica si ya existe un balance */
     const existingBalance = await this.balanceModel.findOne({
       subOffice: subOfficeId,
       createdAt: { $gte: today },
     });
 
+    /* Calcula ganancias de movimientos y transacciones para luego calcular el total de ganancia */
     const movementsProfit = movements.incomeUSD - movements.expensesUSD;
     const transactionsProfit =
       transactions.totalIncomeUSD +
@@ -97,6 +101,7 @@ export class BalanceService {
       (movementsProfit + transactionsProfit).toFixed(2),
     );
 
+    /* Si ya existe un balance lo actualiza */
     if (existingBalance) {
       existingBalance.totalExpensesUSD = movements.expensesUSD; //egresos movimientos
       existingBalance.totalIncomeUSD = movements.incomeUSD; //ingresos movimientos
@@ -107,6 +112,7 @@ export class BalanceService {
       existingBalance.currentStockUSD = currentStockUSD;
 
       await existingBalance.save();
+      /* Si no existe un balance lo crea */
     } else {
       const balance = new this.balanceModel({
         subOffice: subOfficeId,
@@ -128,7 +134,8 @@ export class BalanceService {
    *
    * @returns {Promise<string>} Un mensaje de confirmacion de eliminacion
    */
-  async deleteAll(): Promise<string> {0
+  async deleteAll(): Promise<string> {
+    0;
     try {
       await this.balanceModel.deleteMany({}).exec();
       return 'All balances deleted';

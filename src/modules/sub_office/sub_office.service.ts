@@ -70,7 +70,20 @@ export class SubOfficeService {
     sub_officeData: Partial<createSubOfficeDto>,
   ): Promise<SubOffice> {
     try {
-      return await this.sub_officeModel.create(sub_officeData);
+      if (sub_officeData.numeroIdentificacion) {
+        // El usuario ha proporcionado un número de identificación, se utiliza ese
+        return await this.sub_officeModel.create(sub_officeData);
+      } else {
+        // No se ha proporcionado un número de identificación, se autoincrementa
+        const lastSubOffice = await this.sub_officeModel
+          .findOne()
+          .sort({ numeroIdentificacion: -1 });
+        const newNumeroIdentificacion = lastSubOffice
+          ? lastSubOffice.numeroIdentificacion + 1
+          : 1;
+        sub_officeData.numeroIdentificacion = newNumeroIdentificacion;
+        return await this.sub_officeModel.create(sub_officeData);
+      }
     } catch (error) {
       if (error.code === 11000) {
         // Este es el código de error para clave duplicada en MongoDB
@@ -91,7 +104,7 @@ export class SubOfficeService {
    */
   async findAll(): Promise<SubOffice[]> {
     //PARA USO EN DESARROLLO UNICAMENTE O DE UNA SOLA VEZ(Genera numeroIdentificacion para todas las suboficinas)
-    /* 
+
     const subOffices = await this.sub_officeModel.find().exec();
     const subOfficesWithoutId = await this.sub_officeModel.find().exec();
     let cont = 0;
@@ -101,8 +114,7 @@ export class SubOfficeService {
       await this.retry(() =>
         this.sub_officeModel.findByIdAndUpdate(subOffice._id, subOffice),
       );
-    } 
-      */
+    }
 
     return this.sub_officeModel
       .find()

@@ -40,6 +40,10 @@ export class createSubOfficeDto {
   @IsString()
   users?: string[];
 
+  @IsNumber()
+  @IsOptional()
+  numeroIdentificacion?: number;
+
   @IsArray()
   currencies?: {
     currency: string;
