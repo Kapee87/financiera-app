@@ -26,18 +26,19 @@ export class Balance {
   @Prop({ type: Date, default: Date.now })
   createdAt: Date;
 
+  //INGRESOS
   @Prop({ type: Number, default: 0 })
   totalIncomeUSD: number;
-
+  //EGRESOS
   @Prop({ type: Number, default: 0 })
   totalExpensesUSD: number;
-
+  //TOTAL GANANCIA TRANSACCIONES(Lo que decía matias de apertura y cierre de caja pero sin meter a la caja de por medio, eso en la caja se maneja con el total de todas las operaciones incluyendo movimientos)
   @Prop({ type: Number, default: 0 })
   transactionsProfit: number;
-
+  //Stock total de todas las monedas convertido a dolar
   @Prop({ type: Number, default: 0 })
   currentStockUSD: number;
-
+  //Ganancia total (ingresos + transacciones - egresos)
   @Prop({ type: Number, default: 0 })
   totalProfit: number;
 }
