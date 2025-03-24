@@ -32,6 +32,12 @@ export class SubOfficeController {
    */
   constructor(private readonly subOfficeService: SubOfficeService) {}
 
+  //Traer oficinias por nomrbe y id
+  @Get('/get/name-ids')
+  async getOfficesNames() {
+    return await this.subOfficeService.getOfficesNames();
+  }
+
   /**
    * Crea una nueva suboficina
    *

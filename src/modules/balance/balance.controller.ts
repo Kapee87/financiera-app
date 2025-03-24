@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { BalanceService } from './balance.service';
 import { Balance } from 'src/schemas/balance.schema';
 
@@ -15,6 +15,23 @@ export class BalanceController {
    * Servicio para la gestion de balances
    */
   constructor(private readonly balanceService: BalanceService) {}
+
+  /**
+   * Filtrar balances por fecha o por sucursal
+   * @returns {Promise<Balance[]>} Un array con los balances filtrados
+   */
+  @Get('/get/filter')
+  async filterBalances(
+    @Query('subOfficeId') subOfficeId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string, // Son strings, no Date aún
+  ) {
+    return await this.balanceService.filterBalances(
+      subOfficeId,
+      startDate ? new Date(startDate) : undefined, // Convertimos a Date si existe
+      endDate ? new Date(endDate) : undefined,
+    );
+  }
 
   /**
    * Obtiene todos los balances

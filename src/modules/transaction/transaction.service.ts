@@ -106,10 +106,7 @@ export class TransactionService {
               (paymentMethod) => paymentMethod.method === 'Transferencia',
             )
           : createTransactionDto.paymentMethod === 'Transferencia';
-        console.log('isTransferOperation', isTransferOperation);
-        console.log('userData role', userData.role !== Roles.Admin);
-        console.log('userData', userData);
-        console.log('createTransactionDto', createTransactionDto);
+    
 
         if (isTransferOperation && userData.role !== Roles.Admin) {
           if (

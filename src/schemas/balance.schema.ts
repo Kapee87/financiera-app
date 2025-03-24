@@ -13,6 +13,7 @@
  */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { SubOffice } from './sub_office.schema';
 
 export type BalanceDocument = Balance & Document;
 
@@ -21,7 +22,10 @@ export type BalanceDocument = Balance & Document;
 })
 export class Balance {
   @Prop({ type: Types.ObjectId, required: true })
-  subOffice: string;
+  subOffice: SubOffice;
+
+  @Prop()
+  subOfficeName: string;
 
   @Prop({ type: Date, default: Date.now })
   createdAt: Date;

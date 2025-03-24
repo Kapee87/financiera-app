@@ -21,6 +21,6 @@ import { MovementModule } from '../movements/movements.module';
   ],
   controllers: [BalanceController],
   providers: [BalanceService],
-  exports: [],
+  exports: [ BalanceService],
 })
 export class BalanceModule {}

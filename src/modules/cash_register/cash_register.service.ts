@@ -27,6 +27,8 @@ import { SubOffice } from 'src/schemas/sub_office.schema';
 import { MovementService } from '../movements/movements.service';
 import { cashRegisterFilterDto } from 'src/dtos/cash-register-filter.dto';
 import { truncateDate } from 'src/utils/utilFunctions/utils';
+import { BalanceService } from '../balance/balance.service';
+import { Balance } from 'src/schemas/balance.schema';
 
 export interface CurrencyTotals {
   totalIncomeUSD: number;
@@ -48,11 +50,13 @@ export class CashRegisterService {
     private transactionModel: Model<TransactionDocument>,
     @InjectModel(Movement.name)
     private movementModel: Model<MovementDocument>,
-
+    @InjectModel(Balance.name)
+    private balanceModel: Model<Balance>,
     @Inject(forwardRef(() => CurrencyService))
     private currencyService: CurrencyService,
     @Inject(forwardRef(() => SubOfficeService))
     private subOfficeService: SubOfficeService,
+ 
   ) {}
 
   private getNextDay(date: Date): Date {
@@ -394,8 +398,13 @@ export class CashRegisterService {
   async getCurrentCashRegisterForSubOffice(
     subOfficeId: string | Types.ObjectId,
   ): Promise<CashRegisterDocument | null> {
-    const today = truncateDate(new Date());
-    const tomorrow = this.getNextDay(today);
+    // const today = truncateDate(new Date());
+    // const tomorrow = this.getNextDay(today);
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
     return this.cashRegisterModel
       .findOne({

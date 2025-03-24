@@ -16,6 +16,7 @@ export class BalanceService {
    * @constructor
    * @param {Model<Balance>} balanceModel Modelo de balances
    * @param {CashRegisterService} cash_registerService Servicio para la gestion de cajas
+   *
    */
   constructor(
     @InjectModel('Balance')
@@ -29,7 +30,48 @@ export class BalanceService {
    * @returns {Promise<Balance[]>} Un array con todos los balances
    */
   async findAll(): Promise<Balance[]> {
-    return this.balanceModel.find().exec();
+    const balance = await this.balanceModel.find().populate('subOffice').exec();
+    return balance;
+  }
+
+  /**
+   * Filtrar balances por fecha o por sucursal
+   * @returns {Promise<Balance[]>} Un array con los balances filtrados
+   */
+  async filterBalances(subOfficeId?: string, startDate?: Date, endDate?: Date) {
+    try {
+      console.log('subOfficeId: ', subOfficeId);
+      console.log('startDate: ', startDate);
+      console.log('endDate: ', endDate);
+
+      let filters: any = {};
+      if (subOfficeId) {
+        filters.subOffice = subOfficeId;
+      }
+      if (startDate && endDate) {
+        let allDay = endDate.setUTCHours(23, 59, 59, 999);
+
+        filters.createdAt = { $gte: startDate, $lte: allDay };
+      }
+
+      if (subOfficeId && startDate && endDate) {
+        let allDay = endDate.setUTCHours(23, 59, 59, 999);
+
+        filters.subOffice = subOfficeId;
+        filters.createdAt = { $gte: startDate, $lte: allDay };
+      }
+
+      const balances = await this.balanceModel.find(filters).exec();
+
+      if (balances.length === 0) {
+        return {
+          message: 'No se encontraron balances',
+        };
+      }
+      return balances;
+    } catch (error) {
+      throw error;
+    }
   }
 
   /**
@@ -56,10 +98,12 @@ export class BalanceService {
     const today = truncateDate(new Date());
 
     /* Verifica que haya caja abierta, sino da error */
-    const cashRegister =
+    const cashRegister: any =
       await this.cash_registerService.getCurrentCashRegisterForSubOffice(
         subOfficeId,
       );
+
+    console.log('CashRegister: ', cashRegister);
 
     if (!cashRegister) {
       throw new ConflictException('No hay caja abierta');
@@ -116,6 +160,8 @@ export class BalanceService {
     } else {
       const balance = new this.balanceModel({
         subOffice: subOfficeId,
+        subOfficeName: cashRegister.sub_office.name,
+        date: today,
         totalExpensesUSD: movements.expensesUSD, //egresos movimientos
         totalIncomeUSD: movements.incomeUSD, //ingresos movimientos
         transactionsProfit:

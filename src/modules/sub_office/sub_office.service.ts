@@ -58,6 +58,17 @@ export class SubOfficeService {
     throw lastError;
   }
 
+
+  //Traer oficinas y sus ids
+  async getOfficesNames(){
+    try {
+      const offices = await this.sub_officeModel.find().select('name _id')
+      return offices
+    } catch (error) {
+      throw error
+    }
+  }
+
   /**
    * Crea una nueva suboficina
    *

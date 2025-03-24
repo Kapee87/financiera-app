@@ -25,7 +25,7 @@ export class Currency {
   @Prop({ required: true })
   code: string;
 
-  @Prop({ required: true, unique: true })
+  @Prop({  unique: true })
   numeroIdentificacion: number;
 
   @Prop({
